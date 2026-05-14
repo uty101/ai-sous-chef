@@ -624,3 +624,69 @@ function DoneStep() {
   );
 }
 
+// ─── SelectCard ───────────────────────────────────────────────────────────────
+function SelectCard({
+  label,
+  description,
+  selected,
+  onPress,
+}: {
+  label: string;
+  description?: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.selectCard, selected && styles.selectCardActive]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={styles.selectCardLeft}>
+        <Text style={[styles.selectCardLabel, selected && styles.selectCardLabelActive]}>
+          {label}
+        </Text>
+        {description && (
+          <Text style={[styles.selectCardDesc, selected && styles.selectCardDescActive]}>
+            {description}
+          </Text>
+        )}
+      </View>
+      <View style={[styles.radioOuter, selected && styles.radioOuterActive]}>
+        {selected && <View style={styles.radioInner} />}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── TogglePill ───────────────────────────────────────────────────────────────
+function TogglePill({
+  label,
+  icon,
+  selected,
+  onPress,
+}: {
+  label: string;
+  icon?: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.pill, selected && styles.pillActive]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      {icon && (
+        <Ionicons
+          name={icon as any}
+          size={15}
+          color={selected ? PRIMARY : MUTED}
+          style={{ marginRight: 5 }}
+        />
+      )}
+      <Text style={[styles.pillText, selected && styles.pillTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
