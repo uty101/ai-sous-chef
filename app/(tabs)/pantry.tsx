@@ -448,3 +448,252 @@ function CategoryChips({ items, onRemove, allCollapsed = false }: { items: strin
   );
 }
 
+function ShoppingListModal({
+  visible,
+  onClose,
+  pantryAll,
+  onAddToPantry,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  pantryAll: string[];
+  onAddToPantry: (items: string[]) => void;
+}) {
+  const [items, setItems] = useState<ShoppingItem[]>([]);
+  const [newItem, setNewItem] = useState('');
+  const [showInfo, setShowInfo] = useState(false);
+  const loadedRef = useRef(false);
+  const snapshotRef = useRef<ShoppingItem[]>([]);
+
+  useEffect(() => {
+    if (!visible) return;
+    AsyncStorage.getItem(SHOPPING_MODAL_KEY).then((raw) => {
+      const loaded = raw ? JSON.parse(raw) : generateCuratedList(pantryAll);
+      setItems(loaded);
+      snapshotRef.current = loaded;
+      loadedRef.current = true;
+    });
+  }, [visible]);
+
+  useEffect(() => {
+    if (loadedRef.current) AsyncStorage.setItem(SHOPPING_MODAL_KEY, JSON.stringify(items));
+  }, [items]);
+
+  const refreshList = () => {
+    const fresh = generateCuratedList(pantryAll);
+    setItems(fresh);
+    snapshotRef.current = fresh;
+  };
+
+  const resetList = () => setItems(snapshotRef.current);
+
+  const addItem = (name?: string) => {
+    const trimmed = (name ?? newItem).trim();
+    if (!trimmed) return;
+    const exists = items.some((i) => i.name.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) setItems((prev) => [...prev, { name: trimmed, selected: false }]);
+    if (!name) setNewItem('');
+  };
+
+  const toggleSelected = (name: string) =>
+    setItems((prev) => prev.map((i) => (i.name === name ? { ...i, selected: !i.selected } : i)));
+
+  const removeItem = (name: string) =>
+    setItems((prev) => prev.filter((i) => i.name !== name));
+
+  const addToPantry = () => {
+    onAddToPantry(items.filter((i) => i.selected).map((i) => i.name));
+    setItems((prev) => prev.filter((i) => !i.selected));
+  };
+
+  const selectedCount = items.filter((i) => i.selected).length;
+
+  const itemsWithCategory = items.map((item) => ({
+    ...item,
+    category:
+      SUGGESTION_POOL.find((s) => s.name === item.name)?.category ??
+      categorizeIngredient(item.name),
+  }));
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={shopStyles.overlay}>
+        <View style={shopStyles.panel}>
+
+          {/* Header */}
+          <View style={shopStyles.header}>
+            <View style={shopStyles.headerLeft}>
+              <Text style={shopStyles.headerEyebrow}>7 day plan</Text>
+              <View style={shopStyles.headerTitleRow}>
+                <Text style={shopStyles.headerTitle}>Shopping List</Text>
+                <TouchableOpacity
+                  onPress={() => setShowInfo(true)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.7}>
+                  <Ionicons name="information-circle-outline" size={17} color={MUTED} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={shopStyles.headerActions}>
+              <TouchableOpacity style={shopStyles.refreshBtn} onPress={refreshList} activeOpacity={0.8}>
+                <Ionicons name="refresh-outline" size={17} color={TEAL} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onClose} style={shopStyles.closeBtn} activeOpacity={0.8}>
+                <Ionicons name="close" size={20} color={INK} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={shopStyles.scrollContent}
+            keyboardShouldPersistTaps="handled">
+
+            {/* Select all / Reset row */}
+            {items.length > 0 && (
+              <View style={shopStyles.listActionsRow}>
+                <TouchableOpacity
+                  style={shopStyles.selectAllBtn}
+                  onPress={() => {
+                    const allSelected = items.every((i) => i.selected);
+                    setItems((prev) => prev.map((i) => ({ ...i, selected: !allSelected })));
+                  }}
+                  activeOpacity={0.8}>
+                  <Ionicons
+                    name={items.every((i) => i.selected) ? 'checkmark-circle' : 'checkmark-circle-outline'}
+                    size={14}
+                    color={TEAL}
+                  />
+                  <Text style={shopStyles.selectAllText}>
+                    {items.every((i) => i.selected) ? 'Deselect all' : 'Select all'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={resetList} activeOpacity={0.7}>
+                  <Text style={shopStyles.resetText}>Undo changes</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Add bar */}
+            <View style={shopStyles.addBar}>
+              <TextInput
+                style={shopStyles.addBarInput}
+                placeholder="Add item"
+                placeholderTextColor={MUTED}
+                value={newItem}
+                onChangeText={setNewItem}
+                onSubmitEditing={() => addItem()}
+                returnKeyType="done"
+              />
+              <TouchableOpacity style={shopStyles.addBarBtn} onPress={() => addItem()} activeOpacity={0.85}>
+                <Ionicons name="add" size={14} color={SURFACE} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Curated list grouped by category */}
+            {CATEGORY_ORDER
+              .map((cat) => ({ cat, catItems: itemsWithCategory.filter((i) => i.category === cat) }))
+              .filter(({ catItems }) => catItems.length > 0)
+              .map(({ cat, catItems }) => {
+                const colors = CATEGORY_ACCENT[cat];
+                return (
+                  <View key={cat} style={shopStyles.categoryGroup}>
+                    <View style={shopStyles.categoryHeader}>
+                      <View style={[shopStyles.categoryDot, { backgroundColor: colors.accent }]} />
+                      <Text style={[shopStyles.categoryLabel, { color: colors.accent }]}>{cat}</Text>
+                    </View>
+                    <View style={shopStyles.chipWrap}>
+                      {catItems.map((item) => (
+                        <TouchableOpacity
+                          key={item.name}
+                          style={[
+                            shopStyles.chip,
+                            item.selected
+                              ? { backgroundColor: colors.accent }
+                              : { backgroundColor: colors.bg },
+                          ]}
+                          onPress={() => toggleSelected(item.name)}
+                          activeOpacity={0.8}>
+                          <Ionicons
+                            name={item.selected ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={13}
+                            color={item.selected ? SURFACE : colors.accent}
+                          />
+                          <Text
+                            style={[
+                              shopStyles.chipText,
+                              { color: item.selected ? SURFACE : colors.accent },
+                            ]}>
+                            {item.name}
+                          </Text>
+                          <TouchableOpacity
+                            style={[
+                              shopStyles.chipRemove,
+                              {
+                                backgroundColor: item.selected
+                                  ? 'rgba(255,255,255,0.3)'
+                                  : `${colors.accent}30`,
+                              },
+                            ]}
+                            onPress={() => removeItem(item.name)}
+                            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                            activeOpacity={0.85}>
+                            <Ionicons
+                              name="close"
+                              size={8}
+                              color={item.selected ? SURFACE : colors.accent}
+                            />
+                          </TouchableOpacity>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })}
+
+            {items.length === 0 && (
+              <View style={shopStyles.empty}>
+                <Ionicons name="cart-outline" size={28} color={TEAL} />
+                <Text style={shopStyles.emptyText}>Your list is empty. Add items above.</Text>
+              </View>
+            )}
+
+          </ScrollView>
+
+          {/* Sticky footer */}
+          {selectedCount > 0 && (
+            <View style={shopStyles.footer}>
+              <TouchableOpacity style={shopStyles.addToPantryBtn} onPress={addToPantry} activeOpacity={0.85}>
+                <Ionicons name="bag-add-outline" size={15} color={SURFACE} />
+                <Text style={shopStyles.addToPantryText}>Add {selectedCount} to Pantry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+        </View>
+      </View>
+
+      {/* Info overlay */}
+      <Modal visible={showInfo} transparent animationType="fade" onRequestClose={() => setShowInfo(false)}>
+        <TouchableOpacity style={shopStyles.infoOverlay} activeOpacity={1} onPress={() => setShowInfo(false)}>
+          <View style={shopStyles.infoPanel}>
+            <Text style={shopStyles.infoPanelTitle}>Your Curated List</Text>
+            <Text style={shopStyles.infoPanelBody}>
+              This list is built around your pantry gaps, your meal history and your goals.
+            </Text>
+            <Text style={shopStyles.infoPanelBody}>
+              Tap items to select them, then hit "Add to Pantry" to move them straight into your basket.
+            </Text>
+            <Text style={shopStyles.infoPanelBody}>
+              Use the refresh icon in the top corner to generate a fresh list based on your latest pantry and goals.
+            </Text>
+            <TouchableOpacity onPress={() => setShowInfo(false)} style={shopStyles.infoPanelClose}>
+              <Text style={shopStyles.infoPanelCloseText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </Modal>
+  );
+}
+
