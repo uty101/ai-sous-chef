@@ -539,3 +539,51 @@ export default function OnboardingScreen() {
   );
 }
 
+// ─── Shared step shell ────────────────────────────────────────────────────────
+function Step({
+  title,
+  subtitle,
+  children,
+  onNext,
+  onBack,
+  canContinue,
+  nextLabel = 'Continue',
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  onNext: () => void;
+  onBack: () => void;
+  canContinue: boolean;
+  nextLabel?: string;
+}) {
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={styles.stepScrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.stepTitle}>{title}</Text>
+        {subtitle && <Text style={styles.stepSubtitle}>{subtitle}</Text>}
+        <View style={styles.stepBody}>{children}</View>
+      </ScrollView>
+
+      <View style={styles.navRow}>
+        <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={22} color={PRIMARY} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.nextBtn, !canContinue && styles.nextBtnDisabled]}
+          onPress={canContinue ? onNext : undefined}
+          activeOpacity={canContinue ? 0.85 : 1}
+        >
+          <Text style={styles.nextBtnText}>{nextLabel}</Text>
+          <Ionicons name="chevron-forward" size={18} color={PRIMARY} style={{ marginLeft: 4 }} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
