@@ -337,3 +337,179 @@ function normalizeSavedRecipe(value: unknown): SavedRecipe | null {
   };
 }
 
+function MacroRow({
+  calories, protein, carbs, fats, accent,
+}: {
+  calories: number | null; protein: number | null;
+  carbs: number | null; fats: number | null; accent: string;
+}) {
+  const val = (v: number | null, unit?: string) => v != null ? `${v}${unit ?? ''}` : '—';
+  return (
+    <View style={styles.macroRow}>
+      <View style={styles.macroItem}>
+        <Text style={[styles.macroValue, { color: accent }]}>{val(calories)}</Text>
+        <Text style={styles.macroLabel}>cal</Text>
+      </View>
+      <View style={styles.macroDivider} />
+      <View style={styles.macroItem}>
+        <Text style={[styles.macroValue, { color: accent }]}>{val(protein, 'g')}</Text>
+        <Text style={styles.macroLabel}>protein</Text>
+      </View>
+      <View style={styles.macroDivider} />
+      <View style={styles.macroItem}>
+        <Text style={[styles.macroValue, { color: accent }]}>{val(carbs, 'g')}</Text>
+        <Text style={styles.macroLabel}>carbs</Text>
+      </View>
+      <View style={styles.macroDivider} />
+      <View style={styles.macroItem}>
+        <Text style={[styles.macroValue, { color: accent }]}>{val(fats, 'g')}</Text>
+        <Text style={styles.macroLabel}>fats</Text>
+      </View>
+    </View>
+  );
+}
+
+function MealSheet({ meal, onClose, isFav, onToggleFav }: {
+  meal: SavedRecipeCard;
+  onClose: () => void;
+  isFav: boolean;
+  onToggleFav: () => void;
+}) {
+  const [displaySteps, setDisplaySteps] = useState<string[]>(meal.steps);
+  const [stepsLoading, setStepsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    personaliseSteps({ title: meal.title, ingredients: meal.ingredients, steps: meal.steps, timeMinutes: meal.timeMinutes }, deriveVibe(meal.timeMinutes))
+      .then(steps => { if (!cancelled) { setDisplaySteps(steps); setStepsLoading(false); } })
+      .catch(() => { if (!cancelled) setStepsLoading(false); });
+    return () => { cancelled = true; };
+  }, [meal.id]);
+
+  return (
+    <View style={styles.sheetOverlay}>
+      <View style={[styles.sheetPanel, { backgroundColor: meal.bg }]}>
+        {/* Header — tags + actions on same row */}
+        <View style={styles.sheetHeader}>
+          <View style={styles.sheetHeaderTags}>
+            <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+              <Ionicons name="time-outline" size={13} color={MUTED} />
+              <Text style={styles.sheetTimeBadgeText}>{meal.timeMinutes} min</Text>
+            </View>
+            <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+              <Text style={styles.sheetTimeBadgeText}>{meal.cuisine ?? 'International'}</Text>
+            </View>
+            {meal.createdAt ? (
+              <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+                <Text style={styles.sheetTimeBadgeText}>{timeAgo(meal.createdAt)}</Text>
+              </View>
+            ) : null}
+          </View>
+          <TouchableOpacity style={[styles.sheetCloseBtn, { backgroundColor: 'rgba(255,255,255,0.7)' }]} onPress={onClose} activeOpacity={0.8}>
+            <Ionicons name="close" size={20} color={meal.accent} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.sheetScrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.sheetTitleRow}>
+            <Text style={[styles.sheetTitle, { color: meal.accent, textShadowColor: DARK, textShadowOffset: { width: 0.25, height: 0.25 }, textShadowRadius: 0 }]}>{meal.title}</Text>
+            <TouchableOpacity onPress={onToggleFav} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+              <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={22} color={isFav ? PRIMARY : meal.accent} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.sheetDescription} numberOfLines={1}>{meal.description}</Text>
+
+          <View style={[styles.sheetDivider, { backgroundColor: meal.accent + '30' }]} />
+
+          <Text style={[styles.sheetSectionHead, { color: meal.accent }]}>Ingredients</Text>
+          {meal.ingredients.map((ing, i) => (
+            <View key={i} style={styles.sheetListRow}>
+              <Text style={[styles.sheetBullet, { color: meal.accent }]}>{'•'}</Text>
+              <Text style={styles.sheetListText}>{ing}</Text>
+            </View>
+          ))}
+
+          <View style={[styles.sheetDivider, { backgroundColor: meal.accent + '30' }]} />
+
+          <Text style={[styles.sheetSectionHead, { color: meal.accent }]}>Steps</Text>
+          {stepsLoading ? (
+            <ActivityIndicator size="small" color={meal.accent} style={{ marginVertical: 12 }} />
+          ) : (
+            displaySteps.map((step, i) => (
+              <View key={i} style={styles.sheetListRow}>
+                <View style={[styles.sheetStepCircle, { backgroundColor: meal.accent }]}>
+                  <Text style={styles.sheetStepCircleText}>{i + 1}</Text>
+                </View>
+                <Text style={styles.sheetListText}>{step}</Text>
+              </View>
+            ))
+          )}
+
+          <View style={[styles.sheetDivider, { backgroundColor: meal.accent + '30' }]} />
+          <Text style={[styles.sheetSectionHead, { color: meal.accent }]}>Nutritional Info</Text>
+          <View style={[styles.sheetMacroGrid, { backgroundColor: 'rgba(255,255,255,0.65)', borderColor: meal.accent + '30' }]}>
+            <View style={styles.sheetMacroCell}>
+              <Text style={[styles.sheetMacroValue, { color: meal.accent }]}>{meal.nutrition?.calories ?? '—'}</Text>
+              <Text style={styles.sheetMacroLabel}>Calories</Text>
+            </View>
+            <View style={[styles.sheetMacroDivider, { backgroundColor: meal.accent + '30' }]} />
+            <View style={styles.sheetMacroCell}>
+              <Text style={[styles.sheetMacroValue, { color: meal.accent }]}>{meal.nutrition?.protein != null ? `${meal.nutrition.protein}g` : '—'}</Text>
+              <Text style={styles.sheetMacroLabel}>Protein</Text>
+            </View>
+            <View style={[styles.sheetMacroDivider, { backgroundColor: meal.accent + '30' }]} />
+            <View style={styles.sheetMacroCell}>
+              <Text style={[styles.sheetMacroValue, { color: meal.accent }]}>{meal.nutrition?.carbs != null ? `${meal.nutrition.carbs}g` : '—'}</Text>
+              <Text style={styles.sheetMacroLabel}>Carbs</Text>
+            </View>
+            <View style={[styles.sheetMacroDivider, { backgroundColor: meal.accent + '30' }]} />
+            <View style={styles.sheetMacroCell}>
+              <Text style={[styles.sheetMacroValue, { color: meal.accent }]}>{meal.nutrition?.fats != null ? `${meal.nutrition.fats}g` : '—'}</Text>
+              <Text style={styles.sheetMacroLabel}>Fats</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 24 }} />
+        </ScrollView>
+      </View>
+    </View>
+  );
+}
+
+function RecipeCard({ recipe, isFav, onPress }: {
+  recipe: SavedRecipeCard;
+  isFav: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.recCard, { backgroundColor: recipe.bg }]}
+      onPress={onPress}
+      activeOpacity={0.88}>
+      <View style={styles.recCardTop}>
+        <View style={[styles.cuisineChip, { backgroundColor: `${recipe.accent}22` }]}>
+          <Text style={[styles.cuisineChipText, { color: recipe.accent }]}>{recipe.cuisine ?? 'International'}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <View style={styles.timeBadge}>
+            <Ionicons name="time-outline" size={11} color={MUTED} />
+            <Text style={styles.timeBadgeText}>{recipe.timeMinutes} min</Text>
+          </View>
+          {isFav && <Ionicons name="heart" size={11} color={PRIMARY} />}
+        </View>
+      </View>
+      <Text style={[styles.recCardTitle, { color: recipe.accent }]} numberOfLines={2}>
+        {recipe.title}
+      </Text>
+      <MacroRow
+        calories={recipe.nutrition?.calories ?? null}
+        protein={recipe.nutrition?.protein ?? null}
+        carbs={recipe.nutrition?.carbs ?? null}
+        fats={recipe.nutrition?.fats ?? null}
+        accent={recipe.accent}
+      />
+    </TouchableOpacity>
+  );
+}
+
