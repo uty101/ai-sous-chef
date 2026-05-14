@@ -293,3 +293,71 @@ function generateCuratedList(pantryAll: string[]): ShoppingItem[] {
   return picked.map((item) => ({ name: item.name, selected: false }));
 }
 
+function categorizeIngredient(name: string): string {
+  const n = name.toLowerCase();
+  const has = (k: string) => n.includes(k);
+  const any = (...ks: string[]) => ks.some(has);
+
+  // Protein — meat, fish, seafood, eggs, plant proteins
+  if (any('chicken','beef','lamb','pork','duck','turkey','venison','brisket','steak','mince','sausage','bacon','ham','prosciutto','chorizo','pancetta','salami','pepperoni')) return 'Protein';
+  if (any('salmon','tuna','cod','sea bass','mackerel','haddock','tilapia','trout','halibut','snapper','sardine','anchov','prawn','shrimp','scallop','mussel','clam','squid','crab','lobster','oyster','fish','seafood')) return 'Protein';
+  if (any('egg','tofu','paneer','tempeh','seitan','quorn')) return 'Protein';
+  if (any('chickpea','lentil','black bean','kidney bean','butter bean','cannellini','borlotti','edamame')) return 'Protein';
+
+  // Fruit
+  if (any('apple','banana','strawberr','blueberr','raspberr','blackberr','gooseberr','berry','berries','mango','orange','grape','pear','peach','plum','cherry','cherries','watermelon','melon','pineapple','kiwi','grapefruit','fig','pomegranate','lychee','papaya','guava','apricot','nectarine','passion fruit','clementine','mandarin','satsuma')) return 'Fruit';
+
+  // Dairy — check before veg to catch "cream" / "butter" correctly
+  if (any('milk','yogurt','yoghurt','cheddar','mozzarella','feta','parmesan','brie','gouda','ricotta','halloumi','cottage cheese','mascarpone','burrata','gruyere','gruyère','emmental','manchego','kefir','creme fraiche','crème fraîche','sour cream','ice cream','custard','cheese','cream','butter','ghee')) return 'Dairy';
+
+  // Veg — leafy, brassica, alliums, nightshades, root, other
+  if (any('spinach','kale','lettuce','cabbage','rocket','watercress','chard','pak choi','bok choy','radicchio','endive','chicory')) return 'Veg';
+  if (any('broccoli','cauliflower','courgette','zucchini','aubergine','eggplant','cucumber','celery','fennel','asparagus','artichoke')) return 'Veg';
+  if (any('pepper','tomato','leek','onion','shallot','spring onion','scallion','garlic','ginger','chilli','chili')) return 'Veg';
+  if (any('potato','sweet potato','carrot','parsnip','beetroot','beet','turnip','swede','celeriac','radish','squash','pumpkin','butternut','yam')) return 'Veg';
+  if (any('mushroom','avocado','corn','sweetcorn','pea','mangetout','bean sprout','brussels','sprout','okra')) return 'Veg';
+
+  // Grains & Carbs
+  if (any('pasta','spaghetti','penne','rigatoni','linguine','fettuccine','tagliatelle','fusilli','orzo','rice','noodle','bread','sourdough','naan','pitta','tortilla','bagel','baguette','ciabatta','focaccia','oat','quinoa','couscous','bulgur','barley','farro','polenta','flour','cracker','cereal','granola','brioche','rye','wrap')) return 'Grains';
+
+  // Tins & Pantry
+  if (any('coconut milk','coconut cream','chopped tomato','passata','tomato paste','tomato puree','tomato purée','canned','tinned','stock','broth','pickle','harissa','tahini','pesto','miso','olive','caper','sun-dried','sundried')) return 'Tins';
+
+  return 'Other';
+}
+
+const SPELLING_VARIANTS: Record<string, string> = {
+  // US → UK
+  chili: 'chilli',
+  'chili flakes': 'chilli flakes',
+  zucchini: 'courgette',
+  eggplant: 'aubergine',
+  shrimp: 'prawns',
+  cilantro: 'coriander',
+  arugula: 'rocket',
+  scallion: 'spring onion',
+  scallions: 'spring onions',
+  'ground beef': 'mince',
+  'ground meat': 'mince',
+};
+
+function dedupeIngredients(ingredients: string[]): string[] {
+  // 1. Normalise spelling variants
+  const normalised = ingredients.map((k) => SPELLING_VARIANTS[k.toLowerCase()] ?? k);
+
+  // 2. Exact deduplicate (case-insensitive, first occurrence wins)
+  const seen = new Set<string>();
+  const deduped = normalised.filter((k) => {
+    const lower = k.toLowerCase();
+    if (seen.has(lower)) return false;
+    seen.add(lower);
+    return true;
+  });
+
+  // 3. Remove any entry that is a substring of a longer entry in the same list
+  const lowers = deduped.map((k) => k.toLowerCase());
+  return deduped.filter((k, i) =>
+    !lowers.some((other, j) => j !== i && other.includes(lowers[i]) && other.length > lowers[i].length),
+  );
+}
+
