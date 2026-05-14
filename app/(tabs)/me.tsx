@@ -49,3 +49,60 @@ const profileSections = [
   },
 ];
 
+export default function MeScreen() {
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          <View style={styles.hero}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroCopy}>
+                <Text style={styles.eyebrow}>Your defaults</Text>
+                <Text style={styles.title}>Me</Text>
+              </View>
+              <View style={styles.heroIcon}>
+                <Ionicons name="person-outline" size={28} color={PRIMARY} />
+              </View>
+            </View>
+            <Text style={styles.subtitle}>
+              Settings, allergies, dislikes, and lightweight nutrition preferences live here.
+            </Text>
+          </View>
+
+          <View style={styles.profileCard}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>AI</Text>
+            </View>
+            <View style={styles.profileCopy}>
+              <Text style={styles.profileName}>Sous Chef Profile</Text>
+              <Text style={styles.profileMeta}>Personalisation placeholders for now</Text>
+            </View>
+          </View>
+
+          <View style={styles.cardStack}>
+            {profileSections.map((section) => (
+              <TouchableOpacity
+                key={section.title}
+                style={styles.row}
+                activeOpacity={0.85}
+                onPress={section.route ? () => router.push(section.route as any) : undefined}>
+                <View style={[styles.rowIcon, { backgroundColor: `${section.tone}1A` }]}>
+                  <Ionicons name={section.icon} size={21} color={section.tone} />
+                </View>
+                <View style={styles.rowCopy}>
+                  <Text style={styles.rowTitle}>{section.title}</Text>
+                  <Text style={styles.rowMeta}>{section.meta}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={MUTED} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
