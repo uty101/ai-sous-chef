@@ -243,3 +243,53 @@ const SUGGESTION_POOL: Array<{ name: string; category: string }> = [
   { name: 'Passata', category: 'Tins' },
 ];
 
+const CATEGORY_ACCENT: Record<string, { accent: string; bg: string }> = {
+  Protein: { accent: '#FF5C35', bg: '#FFCFC4' },
+  Fruit:   { accent: '#E03A6A', bg: '#FFC2D4' },
+  Veg:     { accent: '#5A8A2A', bg: '#C8E89A' },
+  Dairy:   { accent: '#2A8A7A', bg: '#A8E0DA' },
+  Grains:  { accent: '#CC8A00', bg: '#FFE099' },
+  Tins:    { accent: '#8A3A20', bg: '#F0B8A0' },
+  Other:   { accent: '#6A6F80', bg: '#D8DAE8' },
+};
+
+const CATEGORY_ORDER = ['Protein', 'Fruit', 'Veg', 'Dairy', 'Grains', 'Tins', 'Other'];
+
+const WEEK_QUOTAS: Record<string, number> = {
+  Protein: 4,
+  Veg: 6,
+  Fruit: 3,
+  Dairy: 3,
+  Grains: 3,
+  Tins: 3,
+};
+
+function generateCuratedList(pantryAll: string[]): ShoppingItem[] {
+  const pantryLower = pantryAll.map((s) => s.toLowerCase());
+  const available = SUGGESTION_POOL
+    .filter((s) => {
+      const n = s.name.toLowerCase();
+      return !pantryLower.some((p) => p.includes(n) || n.includes(p));
+    })
+    .map((s) => {
+      const n = s.name.toLowerCase();
+      const score = QUICK_MEALS.reduce(
+        (acc, meal) => acc + meal.keys.filter((k) => n.includes(k) || k.includes(n)).length,
+        0,
+      );
+      return { ...s, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const countByCat: Record<string, number> = {};
+  const picked: typeof available = [];
+  for (const item of available) {
+    const quota = WEEK_QUOTAS[item.category] ?? 0;
+    if (quota > 0 && (countByCat[item.category] ?? 0) < quota) {
+      picked.push(item);
+      countByCat[item.category] = (countByCat[item.category] ?? 0) + 1;
+    }
+  }
+  return picked.map((item) => ({ name: item.name, selected: false }));
+}
+
