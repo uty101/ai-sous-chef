@@ -772,3 +772,306 @@ export default function SavedScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: DARK },
+  screen: { flex: 1, backgroundColor: BG },
+  container: { flexGrow: 1, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 85 },
+  content: { gap: 22 },
+
+  loadingScreen: {
+    flex: 1,
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 14,
+  },
+  loadingText: { color: MUTED, fontSize: 14 },
+
+  // Hero
+  hero: {
+    backgroundColor: DARK,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    gap: 12,
+  },
+  eyebrow: {
+    color: GOLD,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    textShadowColor: DARK,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
+  },
+  title: {
+    ...brandType,
+    color: '#FFFFFF',
+    fontSize: 24,
+    lineHeight: 30,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    textShadowColor: DARK,
+    textShadowOffset: { width: 1.5, height: 1.5 },
+    textShadowRadius: 0,
+  },
+
+  // Search
+  searchBox: {
+    minHeight: 46,
+    backgroundColor: SURFACE,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#E2E3EA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchInput: { flex: 1, color: DARK, fontSize: 14 },
+
+  // Sections
+  section: { gap: 12 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E3EA',
+  },
+  sectionTitle: {
+    ...brandType,
+    color: PRIMARY,
+    fontSize: 16,
+    textTransform: 'uppercase',
+    textShadowColor: DARK,
+    textShadowOffset: { width: 0.25, height: 0.25 },
+    textShadowRadius: 0,
+    textShadowColor: PRIMARY,
+    textShadowOffset: { width: 0.35, height: 0.35 },
+    textShadowRadius: 0,
+  },
+  countBadge: {
+    backgroundColor: '#FFE8E2',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  countBadgeText: { color: PRIMARY, fontSize: 10, fontWeight: '700' },
+
+  // Vertical card list — 2 columns
+  cardList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+
+  // Recipe card
+  recCard: {
+    width: '48%',
+    borderRadius: 20,
+    padding: 12,
+    gap: 7,
+    overflow: 'hidden',
+  },
+  recCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cuisineChip: {
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+  },
+  cuisineChipText: { fontSize: 8, fontWeight: '800', textTransform: 'uppercase' },
+  timeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  timeBadgeText: { color: MUTED, fontSize: 10, fontWeight: '600' },
+  recCardTitle: {
+    ...brandType,
+    fontSize: 13,
+    lineHeight: 17,
+    minHeight: 34,
+    textTransform: 'uppercase',
+    textShadowOffset: { width: 0.25, height: 0.25 },
+    textShadowRadius: 0,
+  },
+
+  // Fav badge
+  favBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // MacroRow
+  macroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 12,
+    paddingVertical: 5,
+  },
+  macroItem: { flex: 1, alignItems: 'center', gap: 1 },
+  macroValue: {
+    ...brandType,
+    fontSize: 9,
+    textTransform: 'uppercase',
+  },
+  macroLabel: {
+    color: MUTED,
+    fontSize: 7,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  macroDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+
+  // Empty state
+  emptyCard: {
+    minHeight: 120,
+    backgroundColor: SURFACE,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E2E3EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 20,
+  },
+  emptyTitle: {
+    ...brandType,
+    color: DARK,
+    fontSize: 16,
+    textTransform: 'uppercase',
+  },
+  emptySubtitle: { color: MUTED, fontSize: 13 },
+
+  // Login nudge
+  nudgeCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#FFE1D8',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  nudgeText: { flex: 1, color: DARK, fontSize: 14, lineHeight: 20 },
+
+  // Meal sheet modal
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  sheetPanel: {
+    borderRadius: 28,
+    maxHeight: '88%',
+    width: '100%',
+    overflow: 'hidden',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  sheetHeaderTags: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+  },
+  sheetHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sheetCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetScrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  sheetTimeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  sheetTimeBadgeText: { color: MUTED, fontSize: 13, fontWeight: '600' },
+  sheetTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6, gap: 10 },
+  sheetTitle: {
+    ...brandType,
+    color: DARK,
+    fontSize: 22,
+    lineHeight: 26,
+    textTransform: 'uppercase',
+    flex: 1,
+  },
+  sheetDescription: { color: MUTED, fontSize: 14, lineHeight: 20, marginBottom: 10 },
+  sheetDivider: { height: 1, backgroundColor: '#E2E3EA', marginVertical: 10 },
+  sheetSectionHead: {
+    ...brandType,
+    color: DARK,
+    fontSize: 14,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  sheetListRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 5,
+    paddingRight: 8,
+  },
+  sheetBullet: { fontSize: 15, lineHeight: 20, marginRight: 8, minWidth: 14 },
+  sheetStepCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 1,
+  },
+  sheetStepCircleText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  sheetListText: { flex: 1, color: DARK, fontSize: 14, lineHeight: 20 },
+  sheetMacroGrid: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    paddingVertical: 10,
+    marginTop: 6,
+    borderWidth: 1,
+  },
+  sheetMacroCell: { flex: 1, alignItems: 'center', gap: 2 },
+  sheetMacroDivider: { width: 1 },
+  sheetMacroValue: { ...brandType, fontSize: 14 },
+  sheetMacroLabel: { color: MUTED, fontSize: 9, textTransform: 'uppercase', fontWeight: '700' },
+});
