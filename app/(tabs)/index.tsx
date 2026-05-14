@@ -568,3 +568,205 @@ const ING_SKIP = new Set([
   'wine','red wine','white wine','dry white wine',
 ]);
 
+// Ordered: specific patterns before generic. First match wins.
+const ING_CATCH: Array<[RegExp, string]> = [
+  // PASTA
+  [/\b(spaghetti|spaghettini|penne|rigatoni|linguine|tagliatelle|fettuccine|fusilli|farfalle|pappardelle|bucatini|orzo|conchiglie|shells|lasagne|lasagna|vermicelli|capellini|angel.hair|macaroni|tortellini|ravioli|orecchiette|cavatappi|rotini|ziti|ditalini|paccheri|strozzapreti|trofie|mafaldine|cavatelli|cannelloni|manicotti|pasta)\b/i, 'Pasta'],
+  // NOODLES — specific before generic
+  [/\budon\b/i, 'Udon'],
+  [/\bsoba\b/i, 'Soba'],
+  [/\bramen\b/i, 'Ramen'],
+  [/\b(rice noodles?|flat rice noodles?|rice stick noodles?|ho fun|pad thai noodles?)\b/i, 'Rice Noodles'],
+  [/\b(glass noodles?|cellophane noodles?|bean thread noodles?)\b/i, 'Glass Noodles'],
+  [/\b(egg noodles?|lo mein|chow mein)\b/i, 'Egg Noodles'],
+  [/\bnoodles?\b/i, 'Noodles'],
+  // RICE — arborio before generic rice
+  [/\b(arborio|carnaroli|vialone)\b/i, 'Risotto Rice'],
+  [/\b(basmati|jasmine|long.grain|short.grain|wild rice|black rice|red rice|glutinous|sticky rice|sushi rice|bomba|white rice|brown rice|rice)\b/i, 'Rice'],
+  // POULTRY
+  [/\bchicken\b/i, 'Chicken'],
+  [/\b(duck breast|duck leg|duck confit|duck)\b/i, 'Duck'],
+  [/\bturkey\b/i, 'Turkey'],
+  // BEEF
+  [/\b(sirloin|ribeye|rib.eye|fillet steak|tenderloin|rump steak|t.bone|porterhouse|flank steak|skirt steak|hanger steak|brisket|short ribs|beef cheeks?|beef mince|minced beef|ground beef|beef)\b/i, 'Beef'],
+  // LAMB
+  [/\b(lamb chops?|lamb cutlets?|lamb shank|rack of lamb|leg of lamb|lamb mince|minced lamb|lamb)\b/i, 'Lamb'],
+  // CURED PORK — before generic pork
+  [/\b(streaky bacon|back bacon|smoked bacon|bacon)\b/i, 'Bacon'],
+  [/\bchorizo\b/i, 'Chorizo'],
+  [/\bpancetta\b/i, 'Pancetta'],
+  [/\bprosciutto\b/i, 'Prosciutto'],
+  [/\b(salami|pepperoni)\b/i, 'Salami'],
+  [/\b(serrano ham|parma ham|honey roast ham|ham)\b/i, 'Ham'],
+  // GENERIC PORK
+  [/\b(pork belly|pork loin|pork chops?|pork shoulder|pork ribs?|pork fillet|pork tenderloin|pork mince|minced pork|ground pork|pulled pork|pork)\b/i, 'Pork'],
+  // FISH
+  [/\bsalmon\b/i, 'Salmon'],
+  [/\b(cod|codfish)\b/i, 'Cod'],
+  [/\btuna\b/i, 'Tuna'],
+  [/\b(sea bass|seabass)\b/i, 'Sea Bass'],
+  [/\b(sea bream|seabream|dorade)\b/i, 'Sea Bream'],
+  [/\bmackerel\b/i, 'Mackerel'],
+  [/\bhaddock\b/i, 'Haddock'],
+  [/\btilapia\b/i, 'Tilapia'],
+  [/\btrout\b/i, 'Trout'],
+  [/\bhalibut\b/i, 'Halibut'],
+  [/\bmonkfish\b/i, 'Monkfish'],
+  [/\bsnapper\b/i, 'Snapper'],
+  [/\b(mahi.mahi|mahi)\b/i, 'Mahi-Mahi'],
+  [/\bsardines?\b/i, 'Sardines'],
+  // SEAFOOD
+  [/\b(king prawns?|tiger prawns?|jumbo prawns?|prawns?|shrimps?)\b/i, 'Prawns'],
+  [/\bscallops?\b/i, 'Scallops'],
+  [/\bmussels?\b/i, 'Mussels'],
+  [/\bclams?\b/i, 'Clams'],
+  [/\b(squid|calamari)\b/i, 'Squid'],
+  [/\boctopus\b/i, 'Octopus'],
+  [/\b(crab|crabmeat)\b/i, 'Crab'],
+  [/\blobster\b/i, 'Lobster'],
+  [/\banchov(y|ies)\b/i, 'Anchovies'],
+  // VEG — specific before generic
+  [/\b(spring onions?|scallions?|green onions?)\b/i, 'Spring Onion'],
+  [/\bshallots?\b/i, 'Shallots'],
+  [/\b(red onion|yellow onion|white onion|brown onion|onions?)\b/i, 'Onion'],
+  [/\bgarlic\b/i, 'Garlic'],
+  [/\bginger\b/i, 'Ginger'],
+  [/\bleeks?\b/i, 'Leek'],
+  [/\b(button mushrooms?|cremini|chestnut mushrooms?|portobello|shiitake|oyster mushrooms?|porcini|wild mushrooms?|mushrooms?)\b/i, 'Mushrooms'],
+  [/\b(red pepper|green pepper|yellow pepper|orange pepper|bell pepper|capsicum|peppers?)\b/i, 'Pepper'],
+  [/\b(red chilli|green chilli|bird.?s? eye chilli|jalape[nñ]o|habanero|scotch bonnet|chillies|chilis?)\b/i, 'Chilli'],
+  [/\bsun.dried tomatoes?\b/i, 'Sun-Dried Tomatoes'],
+  [/\b(cherry tomatoes?|grape tomatoes?|roma tomatoes?|plum tomatoes?|heirloom tomatoes?|vine tomatoes?|canned tomatoes?|chopped tomatoes?|tinned tomatoes?|passata|tomatoes?)\b/i, 'Tomatoes'],
+  [/\b(sweet potatoes?|yams?)\b/i, 'Sweet Potato'],
+  [/\b(new potatoes?|baby potatoes?|roasting potatoes?|baking potatoes?|russet|yukon gold|maris piper|king edward|jersey royals?|potatoes?)\b/i, 'Potato'],
+  [/\b(courgettes?|zucchinis?)\b/i, 'Courgette'],
+  [/\b(aubergines?|eggplants?)\b/i, 'Aubergine'],
+  [/\b(baby spinach|spinach)\b/i, 'Spinach'],
+  [/\b(savoy cabbage|napa cabbage|chinese cabbage|pointed cabbage|red cabbage|white cabbage|cabbages?)\b/i, 'Cabbage'],
+  [/\b(bok choy|pak choi|bok choi|pak choy)\b/i, 'Pak Choi'],
+  [/\b(kale|cavolo nero|tuscan kale|curly kale)\b/i, 'Kale'],
+  [/\b(tenderstem broccoli|broccolini|broccoli)\b/i, 'Broccoli'],
+  [/\b(cauliflower|cauli)\b/i, 'Cauliflower'],
+  [/\b(baby carrots?|carrots?)\b/i, 'Carrot'],
+  [/\bcelery\b/i, 'Celery'],
+  [/\basparagus\b/i, 'Asparagus'],
+  [/\b(sugar snap peas?|mangetout|snow peas?|garden peas?|frozen peas?|peas?)\b/i, 'Peas'],
+  [/\b(sweetcorn|corn on the cob|corn)\b/i, 'Corn'],
+  [/\bavocados?\b/i, 'Avocado'],
+  [/\bcucumber\b/i, 'Cucumber'],
+  [/\b(beetroot|beets?)\b/i, 'Beetroot'],
+  [/\bfennel\b/i, 'Fennel'],
+  [/\b(globe artichokes?|artichokes?)\b/i, 'Artichoke'],
+  [/\b(butternut squash|acorn squash|delicata squash|squash|pumpkin)\b/i, 'Squash'],
+  [/\bceleriac\b/i, 'Celeriac'],
+  [/\bparsnips?\b/i, 'Parsnip'],
+  [/\bradishes?\b/i, 'Radish'],
+  [/\bbrussels sprouts?\b/i, 'Brussels Sprouts'],
+  // LEGUMES
+  [/\b(chickpeas?|garbanzo beans?)\b/i, 'Chickpeas'],
+  [/\b(red lentils?|green lentils?|black lentils?|puy lentils?|beluga lentils?|lentils?)\b/i, 'Lentils'],
+  [/\b(red kidney beans?|kidney beans?)\b/i, 'Kidney Beans'],
+  [/\bblack beans?\b/i, 'Black Beans'],
+  [/\b(cannellini beans?|haricot beans?|navy beans?|white beans?)\b/i, 'Cannellini Beans'],
+  [/\b(butter beans?|lima beans?)\b/i, 'Butter Beans'],
+  [/\bborlotti beans?\b/i, 'Borlotti Beans'],
+  [/\bedamame\b/i, 'Edamame'],
+  // TOFU
+  [/\b(firm tofu|silken tofu|extra.firm tofu|tofu)\b/i, 'Tofu'],
+  // EGGS
+  [/\beggs?\b/i, 'Eggs'],
+  // DAIRY — specific before generic
+  [/\bcoconut cream\b/i, 'Coconut Cream'],
+  [/\bcoconut milk\b/i, 'Coconut Milk'],
+  [/\b(whole milk|semi.skimmed milk|skimmed milk|full.fat milk|oat milk|almond milk|soy milk|milk)\b/i, 'Milk'],
+  [/\b(sour cream|creme fraiche|crème fraîche)\b/i, 'Sour Cream'],
+  [/\b(double cream|heavy cream|single cream|whipping cream|cooking cream|cream)\b/i, 'Cream'],
+  [/\b(greek yogh?urt|natural yogh?urt|plain yogh?urt|yogh?urt)\b/i, 'Yogurt'],
+  // CHEESE
+  [/\b(feta cheese|feta)\b/i, 'Feta'],
+  [/\b(parmesan|parmigiano)\b/i, 'Parmesan'],
+  [/\b(buffalo mozzarella|fresh mozzarella|mozzarella)\b/i, 'Mozzarella'],
+  [/\bcheddar\b/i, 'Cheddar'],
+  [/\b(goat.?s? cheese|chèvre|chevre)\b/i, 'Goat Cheese'],
+  [/\bricotta\b/i, 'Ricotta'],
+  [/\bburrata\b/i, 'Burrata'],
+  [/\bhalloumi\b/i, 'Halloumi'],
+  [/\bpecorino\b/i, 'Pecorino'],
+  [/\b(gorgonzola|stilton|roquefort|blue cheese)\b/i, 'Blue Cheese'],
+  [/\bcream cheese\b/i, 'Cream Cheese'],
+  [/\bcottage cheese\b/i, 'Cottage Cheese'],
+  [/\b(gruy[eè]re)\b/i, 'Gruyère'],
+  [/\b(emmental|emmenthal)\b/i, 'Emmental'],
+  [/\bgouda\b/i, 'Gouda'],
+  [/\bbrie\b/i, 'Brie'],
+  [/\bcamembert\b/i, 'Camembert'],
+  [/\bmanchego\b/i, 'Manchego'],
+  // BREAD — specific before generic
+  [/\bsourdough\b/i, 'Sourdough'],
+  [/\bciabatta\b/i, 'Ciabatta'],
+  [/\bfocaccia\b/i, 'Focaccia'],
+  [/\b(baguette|french stick)\b/i, 'Baguette'],
+  [/\bnaan\b/i, 'Naan'],
+  [/\bpitta?\b/i, 'Pitta'],
+  [/\bflatbread\b/i, 'Flatbread'],
+  [/\btortillas?\b/i, 'Tortilla'],
+  [/\bbrioche\b/i, 'Brioche'],
+  [/\bbagels?\b/i, 'Bagel'],
+  [/\b(rye bread|pumpernickel)\b/i, 'Rye Bread'],
+  [/\bread\b/i, 'Bread'],
+  // GRAINS
+  [/\bquinoa\b/i, 'Quinoa'],
+  [/\bcouscous\b/i, 'Couscous'],
+  [/\b(bulgur|bulgar)\b/i, 'Bulgur Wheat'],
+  [/\bfarro\b/i, 'Farro'],
+  [/\b(pearl barley|barley)\b/i, 'Barley'],
+  [/\b(polenta|cornmeal)\b/i, 'Polenta'],
+  [/\b(rolled oats?|porridge oats?|oatmeal|oats?)\b/i, 'Oats'],
+  // CITRUS
+  [/\blemons?\b/i, 'Lemon'],
+  [/\blimes?\b/i, 'Lime'],
+  [/\boranges?\b/i, 'Orange'],
+  // NUTS
+  [/\b(pine nuts?|pignoli)\b/i, 'Pine Nuts'],
+  [/\b(flaked almonds?|ground almonds?|almonds?)\b/i, 'Almonds'],
+  [/\bwalnuts?\b/i, 'Walnuts'],
+  [/\b(cashews?|cashew nuts?)\b/i, 'Cashews'],
+  [/\bpistachios?\b/i, 'Pistachios'],
+  [/\b(peanuts?|groundnuts?)\b/i, 'Peanuts'],
+  [/\bhazelnuts?\b/i, 'Hazelnuts'],
+  // CONDIMENTS THAT ARE REAL INGREDIENTS
+  [/\btahini\b/i, 'Tahini'],
+  [/\bharissa\b/i, 'Harissa'],
+  [/\bpesto\b/i, 'Pesto'],
+  [/\b(dijon mustard|wholegrain mustard|english mustard|mustard)\b/i, 'Mustard'],
+  [/\b(kalamata olives?|black olives?|green olives?|olives?)\b/i, 'Olives'],
+  [/\bcapers?\b/i, 'Capers'],
+  [/\b(dark chocolate|milk chocolate|white chocolate|chocolate)\b/i, 'Chocolate'],
+];
+
+function ingredientName(ing: string): string | null {
+  const name = ing
+    .replace(/^[\d/. ×x-]+\s*(g|kg|ml|l|oz|lb|lbs|tbsp|tsp|cups?|cans?|tins?|slices?|bunch|pinch|dash|handfuls?|cloves?|heads?)?\s+/i, '')
+    .replace(/^(a|an|some|handful of|pinch of|dash of|can of|tin of|knob of|splash of|drizzle of|glug of|squeeze of|juice of|zest of)\s+/i, '')
+    .replace(/,.*$/, '')
+    .replace(/\(.*?\)/g, '')
+    .trim()
+    .toLowerCase();
+
+  if (ING_SKIP.has(name)) return null;
+  if (/\b(to taste|to serve|to garnish|optional|for garnish|for serving)\b/i.test(name)) return null;
+  if (/\boil\b/i.test(name)) return null;
+
+  for (const [pattern, label] of ING_CATCH) {
+    if (pattern.test(name)) return label;
+  }
+
+  // fallback: strip descriptors, collapse spaces
+  const cleaned = name
+    .replace(/\b(fresh|dried|canned|tinned|ripe|boneless|skinless|large|medium|small|finely|roughly|thinly|sliced|diced|chopped|minced|cooked|raw|ground|smoked|frozen|peeled|pitted|halved|quartered|crushed|grated|roasted|whole|can)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return cleaned ? cleaned.replace(/^\w/, c => c.toUpperCase()) : null;
+}
+
