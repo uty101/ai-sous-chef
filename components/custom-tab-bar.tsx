@@ -119,3 +119,79 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
+const styles = StyleSheet.create({
+  outerWrapper: {
+    position: 'absolute',
+    left: -11,
+    right: -11,
+    alignItems: 'center',
+  },
+  // Height = amount FAB protrudes above bar
+  fabSpacer: {
+    height: FAB_SIZE - FAB_IN_BAR,
+    width: '100%',
+  },
+  bar: {
+    width: '100%',
+    height: BAR_HEIGHT,
+    backgroundColor: BAR_BG,
+    borderRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingBottom: 10,
+    shadowColor: BAR_BG,
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  side: {
+    flex: 2,
+    flexDirection: 'row',
+    height: '100%',
+    alignItems: 'center',
+  },
+  centerSlot: {
+    width: 80,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 14,
+  },
+  chefLine: {
+    marginTop: 1,
+    letterSpacing: 0.5,
+  },
+  tab: {
+    flex: 1,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  tabLabel: {
+    fontFamily: brandFontFamily,
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  fab: {
+    position: 'absolute',
+    top: 0,
+    alignSelf: 'center',
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: CREAM,
+    shadowColor: ORANGE,
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 14,
+    zIndex: 10,
+  },
+});
