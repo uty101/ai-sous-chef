@@ -221,3 +221,68 @@ function Card({ children, style }: { children: React.ReactNode; style?: object }
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
+function isIngredient(value: unknown): value is Ingredient {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.name === 'string' &&
+    typeof item.confidence === 'number' &&
+    (item.source === 'vision' || item.source === 'label' || item.source === 'mixed')
+  );
+}
+
+function isUnresolvedItem(value: unknown): value is UnresolvedItem {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const item = value as Record<string, unknown>;
+  return typeof item.labelHint === 'string' && typeof item.reason === 'string';
+}
+
+function isDetectionResult(value: unknown): value is DetectionResult {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const item = value as Record<string, unknown>;
+  return (
+    Array.isArray(item.confirmedIngredients) &&
+    item.confirmedIngredients.every(isIngredient) &&
+    Array.isArray(item.possibleIngredients) &&
+    item.possibleIngredients.every(isIngredient) &&
+    Array.isArray(item.unresolvedItems) &&
+    item.unresolvedItems.every(isUnresolvedItem) &&
+    Array.isArray(item.qualityWarnings) &&
+    item.qualityWarnings.every((entry) => typeof entry === 'string')
+  );
+}
+
+function isRecipeResult(value: unknown): value is RecipeResult {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const item = value as Record<string, unknown>;
+  const n = item.nutrition as Record<string, unknown> | null | undefined;
+  const nutritionOk =
+    n !== null && typeof n === 'object' &&
+    typeof n.calories === 'number' &&
+    typeof n.protein === 'number' &&
+    typeof n.carbs === 'number' &&
+    typeof n.fats === 'number';
+  return (
+    typeof item.title === 'string' &&
+    typeof item.description === 'string' &&
+    Array.isArray(item.ingredients) &&
+    item.ingredients.every((entry) => typeof entry === 'string') &&
+    Array.isArray(item.steps) &&
+    item.steps.every((entry) => typeof entry === 'string') &&
+    typeof item.timeMinutes === 'number' &&
+    nutritionOk
+  );
+}
+
