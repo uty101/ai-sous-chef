@@ -300,3 +300,74 @@ function getResponseSchema(_mode: DetectionMode) {
   };
 }
 
+function buildPrompt(goal: string, mode: DetectionMode) {
+  const basePrompt =
+    'You are the ingredient detection layer for a mobile cooking app. ' +
+    'Your outcome is a comprehensive, user-reviewable grocery inventory from one photo. ' +
+    'Prioritize recall: include every visible food, drink, sauce, spice, packaged grocery, fresh ingredient, and cooking staple that has visual or label evidence. ' +
+    'Do not invent hidden items, but do include partially visible items when shape, color, packaging, or readable text gives useful evidence. ' +
+    'For packaged foods, read visible labels and normalize brands/products into simple ingredient names when possible, for example "pasta", "tomato sauce", "shredded cheese", "tortillas", "rice", "yogurt", or "chicken stock". ' +
+    'If the exact product flavor or variety is uncertain, use the broader useful ingredient category instead of dropping it. ' +
+    'If several examples of the same food are visible, return one ingredient name rather than duplicates. ' +
+    'Use the source "vision" when the visual item itself is the main evidence, "label" when readable packaging text is the main evidence, and "mixed" when both matter. ' +
+    'Place strong detections in confirmedIngredients. Put useful but less certain detections in possibleIngredients rather than omitting them. ' +
+    'Do not repeat the same ingredient in both lists. ' +
+    'If there are packaged or unclear foods you cannot confidently normalize, put them in unresolvedItems with a short labelHint and reason. ' +
+    'If the photo quality causes issues, add short notes to qualityWarnings such as "glare on packaging", "items overlap", or "label text unreadable". ';
+
+  if (mode === 'preview') {
+    return (
+      basePrompt +
+      `This is a live camera preview for the "${goal}" goal. Prioritize fast, concise detection. Return valid JSON only.`
+    );
+  }
+
+  return (
+    basePrompt +
+    `This is the final photo scan for the "${goal}" goal. Spend the effort on visual ingredient detection only; do not generate meal ideas. ` +
+    'Success means the user sees almost everything visible in the photo, even if some items are marked possible for review. Return valid JSON only.'
+  );
+}
+
+function getOpenAIRequestBody(imageUri: string, goal: string, mode: DetectionMode) {
+  const imageContent =
+    mode === 'preview'
+      ? {
+          type: 'input_image',
+          image_url: imageUri,
+          detail: 'low',
+        }
+      : {
+          type: 'input_image',
+          image_url: imageUri,
+        };
+
+  return {
+    model: mode === 'preview' ? OPENAI_PREVIEW_MODEL : OPENAI_MODEL,
+    reasoning: {
+      effort: mode === 'preview' ? 'low' : 'medium',
+    },
+    input: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: buildPrompt(goal, mode),
+          },
+          imageContent,
+        ],
+      },
+    ],
+    text: {
+      verbosity: 'low',
+      format: {
+        type: 'json_schema',
+        name: mode === 'preview' ? 'ingredient_preview' : 'ingredient_detection',
+        strict: true,
+        schema: getResponseSchema(mode),
+      },
+    },
+  };
+}
+
