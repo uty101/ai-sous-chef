@@ -500,3 +500,513 @@ function RecipeSheet({ recipe, onClose, isFav, onToggleFav }: { recipe: RecipeDe
   );
 }
 
+export default function CalendarScreen() {
+  const dates = getDateRange();
+  const scrollRef = useRef<ScrollView>(null);
+
+  const [history, setHistory] = useState<HistoryEntry[]>(getMockHistory());
+  const [isLoading, setIsLoading] = useState(true);
+  const [pantry] = useState<string[]>(MOCK_PANTRY);
+  const [userOverrides, setUserOverrides] = useState<Set<string>>(new Set());
+  const [extraSuggestions, setExtraSuggestions] = useState<Record<string, PlannedMeal[]>>({});
+  const [weekPlan, setWeekPlan] = useState<Record<string, PlannedMeal>>(
+    () => buildAutoWeekPlan(MOCK_PANTRY, new Set()),
+  );
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetail | null>(null);
+  const [recipeLoading, setRecipeLoading] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+
+  // Rebuild auto-plan whenever pantry or overrides change; preserve user-chosen days
+  useEffect(() => {
+    setWeekPlan((prev) => {
+      const auto = buildAutoWeekPlan(pantry, userOverrides);
+      return { ...prev, ...auto };
+    });
+  }, [pantry, userOverrides]);
+
+  const TODAY_OFFSET = DAYS_BACK * (CELL_WIDTH + CELL_GAP);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      scrollRef.current?.scrollTo({ x: TODAY_OFFSET, y: 0, animated: false });
+    }, 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) { setIsLoading(false); return; }
+
+    const load = async () => {
+      const { data: userData } = await supabase!.auth.getUser();
+      const user = userData.user;
+      if (!user) { setIsLoading(false); return; }
+
+      const { data: recipes } = await supabase!
+        .from('recipes')
+        .select('id, title, time_minutes, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (Array.isArray(recipes) && recipes.length > 0) {
+        setHistory(recipes.map((r) => ({
+          id: r.id,
+          title: r.title,
+          createdAt: r.created_at,
+          timeMinutes: r.time_minutes ?? 0,
+        })));
+      }
+      setIsLoading(false);
+    };
+
+    load();
+
+    const { data: authListener } = supabase!.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) { setHistory(getMockHistory()); setIsLoading(false); }
+    });
+
+    return () => { authListener.subscription.unsubscribe(); };
+  }, []);
+
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    AsyncStorage.getItem(FAVORITES_KEY).then((stored) => {
+      if (stored) { try { setFavoriteIds(new Set(JSON.parse(stored) as string[])); } catch {} }
+    });
+  }, [isFocused]);
+
+  const toggleFavorite = (id: string, fullData?: RecipeDetail) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      const adding = !next.has(id);
+      if (adding) { next.add(id); } else { next.delete(id); }
+      AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+      if (fullData) {
+        AsyncStorage.getItem(SAVED_RECIPES_DATA_KEY).then(raw => {
+          const data: Record<string, object> = raw ? JSON.parse(raw) : {};
+          if (adding) {
+            data[id] = {
+              id: fullData.id, title: fullData.title, description: fullData.description,
+              ingredients: fullData.ingredients, steps: fullData.steps,
+              timeMinutes: fullData.timeMinutes, nutrition: fullData.nutrition,
+              cuisine: fullData.cuisine,
+              bg: fullData.bg ?? CREAM, accent: fullData.accent ?? BRAND_ORANGE,
+              createdAt: new Date().toISOString(),
+            };
+          } else {
+            delete data[id];
+          }
+          AsyncStorage.setItem(SAVED_RECIPES_DATA_KEY, JSON.stringify(data));
+        });
+      }
+      return next;
+    });
+  };
+
+  async function handleOpenRecipe(entry: HistoryEntry) {
+    // Mock entries: look up from local data
+    if (entry.id.startsWith('mock-hist-')) {
+      const detail = MOCK_RECIPE_DETAILS[entry.title];
+      if (detail) {
+        setSelectedRecipe({ ...detail, id: entry.id, createdAt: entry.createdAt });
+      }
+      return;
+    }
+
+    // Real Supabase entry: fetch full recipe
+    if (!supabase) return;
+    setRecipeLoading(true);
+    const { data } = await supabase
+      .from('recipes')
+      .select('id, title, time_minutes, created_at, description, ingredients, steps')
+      .eq('id', entry.id)
+      .single();
+
+    if (data) {
+      setSelectedRecipe({
+        id: data.id,
+        title: data.title,
+        timeMinutes: data.time_minutes ?? 0,
+        createdAt: data.created_at,
+        description: data.description ?? '',
+        ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
+        steps: Array.isArray(data.steps) ? data.steps : [],
+      });
+    }
+    setRecipeLoading(false);
+  }
+
+  async function handleOpenPlannedMeal(meal: PlannedMeal) {
+    // Check mock data first — opens instantly
+    const mockDetail = MOCK_RECIPE_DETAILS[meal.title];
+    if (mockDetail) {
+      setSelectedRecipe({
+        ...mockDetail,
+        id: meal.id,
+        accent: meal.accent,
+        bg: meal.bg,
+        cuisine: meal.cuisine,
+        goal: meal.goal,
+      });
+      return;
+    }
+
+    // Open the modal immediately with stub data so the user sees it straight away.
+    // The API call below fills in steps, description, and nutrition in the background.
+    setSelectedRecipe({
+      id: meal.id,
+      title: meal.title,
+      description: '',
+      ingredients: meal.uses,
+      steps: [],
+      timeMinutes: meal.timeMinutes,
+      accent: meal.accent,
+      bg: meal.bg,
+      cuisine: meal.cuisine,
+      goal: meal.goal,
+    });
+
+    if (!GENERATE_FINAL_MEAL_FUNCTION_URL) return;
+    setRecipeLoading(true);
+    try {
+      const ingredients = meal.uses.length > 0 ? meal.uses : ['mixed pantry ingredients'];
+      const goal = `${meal.goal} (${meal.cuisine})`;
+      const response = await fetch(GENERATE_FINAL_MEAL_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ ingredients, goal }),
+      });
+      if (!response.ok) { setRecipeLoading(false); return; }
+      const data = await response.json();
+      if (!data?.steps) { setRecipeLoading(false); return; }
+      setSelectedRecipe({
+        id: meal.id,
+        title: meal.title,
+        timeMinutes: data.timeMinutes ?? meal.timeMinutes,
+        description: data.description ?? '',
+        ingredients: data.ingredients ?? meal.uses,
+        steps: data.steps ?? [],
+        accent: meal.accent,
+        bg: meal.bg,
+        cuisine: meal.cuisine,
+        goal: meal.goal,
+        nutrition: data.nutrition,
+      });
+    } catch {
+      // silently fail — modal stays open with stub data
+    }
+    setRecipeLoading(false);
+  }
+
+  const recipesByDate = history.reduce<Record<string, HistoryEntry>>((acc, r) => {
+    const key = new Date(r.createdAt).toDateString();
+    if (!acc[key]) acc[key] = r;
+    return acc;
+  }, {});
+
+  const selectedKey = selectedDate.toDateString();
+  const plannedMeal = weekPlan[selectedKey] ?? null;
+  const historyMeal = recipesByDate[selectedKey] ?? null;
+  const isPast = selectedDate < new Date() && selectedKey !== new Date().toDateString();
+
+  const extras = extraSuggestions[selectedKey] ?? [];
+  const base = getSuggestionsForDay(selectedDate);
+  const allSuggestions = [
+    ...extras.filter((m) => m.id !== plannedMeal?.id),
+    ...base.filter((m) => !extras.find((e) => e.id === m.id) && m.id !== plannedMeal?.id),
+  ];
+
+const selectedMonth = `${MONTH_NAMES[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`;
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <StatusBar style="light" backgroundColor={INK} />
+      <View style={[styles.hero, { paddingTop: TOP_INSET + 22 }]}>
+        <Text style={styles.eyebrow}>Plan and remember</Text>
+        <Text style={styles.title}>Calendar</Text>
+      </View>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+
+          {/* Date strip */}
+          <View style={styles.section}>
+            <View style={styles.stripHeader}>
+              <SectionTitle>Your Week</SectionTitle>
+              <Text style={styles.monthLabel}>{selectedMonth}</Text>
+            </View>
+
+            <ScrollView
+              ref={scrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.dateScrollView}
+              contentContainerStyle={styles.dateScrollContent}
+>
+              {dates.map(({ date, isToday, isPast: cellIsPast }, idx) => {
+                const planned = weekPlan[date.toDateString()];
+                const cooked = recipesByDate[date.toDateString()];
+                const isSelected = date.toDateString() === selectedKey;
+                const prevDate = idx > 0 ? dates[idx - 1].date : null;
+                const showMonthTick = prevDate && date.getMonth() !== prevDate.getMonth();
+
+                return (
+                  <View key={idx} style={styles.dateCellWrapper}>
+                    {showMonthTick && (
+                      <Text style={styles.monthTick}>{MONTH_NAMES[date.getMonth()]}</Text>
+                    )}
+                    <TouchableOpacity
+                      style={[
+                        styles.dateCell,
+                        isToday && styles.dateCellToday,
+                        !isToday && isSelected && styles.dateCellSelected,
+                        !cellIsPast && planned && !isSelected && styles.dateCellPlanned,
+                        cellIsPast && cooked && !isSelected && styles.dateCellCooked,
+                      ]}
+                      onPress={() => setSelectedDate(date)}
+                      activeOpacity={0.8}>
+                      <Text style={[
+                        styles.dateCellDay,
+                        (isToday || isSelected) && styles.dateCellDayActive,
+                        cellIsPast && !cooked && !isSelected && styles.dateCellDayPast,
+                      ]}>
+                        {DAY_NAMES[date.getDay()].slice(0, 3)}
+                      </Text>
+                      <Text style={[
+                        styles.dateCellNum,
+                        (isToday || isSelected) && styles.dateCellNumActive,
+                        cellIsPast && !cooked && !isSelected && styles.dateCellNumPast,
+                      ]}>
+                        {date.getDate()}
+                      </Text>
+                      {!cellIsPast && planned && !isSelected ? (
+                        <View style={styles.dotOrange} />
+                      ) : cellIsPast && cooked && !isSelected ? (
+                        <View style={styles.dotGold} />
+                      ) : isSelected ? (
+                        <View style={[styles.dotOrange, { backgroundColor: 'rgba(255,255,255,0.6)' }]} />
+                      ) : (
+                        <View style={styles.dotEmpty} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.weekLegend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: BRAND_ORANGE }]} />
+                <Text style={styles.legendText}>Planned</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: GOLD }]} />
+                <Text style={styles.legendText}>Cooked</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <Text style={styles.legendHint}>← scroll to see past meals</Text>
+              </View>
+            </View>
+          </View>
+
+
+          {/* Inline day detail */}
+          <View style={styles.section}>
+            {isPast ? (
+              historyMeal ? (
+                <TouchableOpacity
+                  style={styles.cookedCard}
+                  onPress={() => handleOpenRecipe(historyMeal)}
+                  activeOpacity={0.85}>
+                  <View style={styles.cookedIcon}>
+                    <Ionicons name="checkmark-circle" size={22} color={GREEN} />
+                  </View>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={styles.cookedTitle}>{historyMeal.title}</Text>
+                    <Text style={styles.cookedMeta}>
+                      {formatRelativeDate(historyMeal.createdAt)}
+                      {historyMeal.timeMinutes > 0 ? ` · ${historyMeal.timeMinutes} min` : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={MUTED} />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.emptyPastCard}>
+                  <Ionicons name="time-outline" size={18} color={MUTED} />
+                  <Text style={styles.emptyPastText}>Nothing logged for this day</Text>
+                </View>
+              )
+            ) : (
+              <>
+                {plannedMeal && (
+                  <>
+                    <View style={styles.rowDivider}>
+                      <Ionicons name="restaurant-outline" size={14} color={BRAND_ORANGE} />
+                      <Text style={[styles.rowDividerLabel, { color: BRAND_ORANGE }]}>What we're cooking</Text>
+                      <View style={styles.rowDividerLine} />
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.plannedCard, { backgroundColor: plannedMeal.bg }]}
+                      onPress={() => handleOpenPlannedMeal(plannedMeal)}
+                      activeOpacity={0.88}>
+                      <Text style={[styles.plannedTitle, { color: plannedMeal.accent }]}>{plannedMeal.title}</Text>
+                      <View style={styles.metaRow}>
+                        <View style={[styles.goalChip, { backgroundColor: plannedMeal.accent }]}>
+                          <Text style={styles.goalChipText}>{plannedMeal.goal?.split(' ').pop()}</Text>
+                        </View>
+                        <Text style={styles.metaDot}>·</Text>
+                        <Text style={styles.metaText}>{plannedMeal.cuisine}</Text>
+                        <Text style={styles.metaDot}>·</Text>
+                        <Ionicons name="time-outline" size={12} color={MUTED} />
+                        <Text style={styles.metaText}>{plannedMeal.timeMinutes} min</Text>
+                      </View>
+                      {plannedMeal.uses.length > 0 && (
+                        <View style={styles.usesRow}>
+                          <Ionicons name="basket-outline" size={12} color={plannedMeal.accent} />
+                          <Text style={[styles.usesText, { color: plannedMeal.accent }]} numberOfLines={1}>
+                            {plannedMeal.uses.join(', ')}
+                          </Text>
+                        </View>
+                      )}
+                      {userOverrides.has(selectedKey) && (
+                        <View style={styles.plannedActions}>
+                          <TouchableOpacity
+                            style={styles.removeBtn}
+                            onPress={() => {
+                              setWeekPlan((prev) => { const next = { ...prev }; delete next[selectedKey]; return next; });
+                              setUserOverrides((prev) => { const next = new Set(prev); next.delete(selectedKey); return next; });
+                              setExtraSuggestions((prev) => { const next = { ...prev }; delete next[selectedKey]; return next; });
+                            }}
+                            activeOpacity={0.85}>
+                            <Text style={styles.removeBtnText}>Remove</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                <View style={styles.rowDivider}>
+                  <Ionicons name="swap-horizontal-outline" size={14} color={BRAND_ORANGE} />
+                  <Text style={[styles.rowDividerLabel, { color: BRAND_ORANGE }]}>
+                    {plannedMeal ? 'Switch it up' : 'Suggested for you'}
+                  </Text>
+                  <View style={styles.rowDividerLine} />
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.suggestionScrollView}
+                  contentContainerStyle={styles.suggestionScrollContent}>
+                  {allSuggestions.map((meal) => (
+                    <TouchableOpacity key={meal.id} style={[styles.suggestionCard, { backgroundColor: meal.bg }]} onPress={() => handleOpenPlannedMeal(meal)} activeOpacity={0.88}>
+                      <Text style={[styles.suggestionTitle, { color: meal.accent }]} numberOfLines={2}>{meal.title}</Text>
+                      <View style={styles.suggestionCardBottom}>
+                        <View style={styles.metaRow}>
+                          <View style={[styles.goalChip, { backgroundColor: meal.accent }]}>
+                            <Text style={styles.goalChipText}>{meal.goal?.split(' ').pop()}</Text>
+                          </View>
+                          <Text style={styles.metaDot}>·</Text>
+                          <Ionicons name="time-outline" size={11} color={MUTED} />
+                          <Text style={styles.metaText}>{meal.timeMinutes} min</Text>
+                        </View>
+                        {meal.uses.length > 0 && (
+                          <View style={styles.usesRow}>
+                            <Ionicons name="basket-outline" size={12} color={meal.accent} />
+                            <Text style={[styles.usesText, { color: meal.accent }]} numberOfLines={1}>
+                              {meal.uses.join(', ')}
+                            </Text>
+                          </View>
+                        )}
+                        <View style={styles.plannedActions}>
+                          <TouchableOpacity
+                            style={styles.cookBtn}
+                            onPress={() => {
+                              if (plannedMeal) {
+                                setExtraSuggestions((prev) => {
+                                  const existing = prev[selectedKey] ?? [];
+                                  if (existing.find((x) => x.id === plannedMeal.id)) return prev;
+                                  return { ...prev, [selectedKey]: [plannedMeal, ...existing] };
+                                });
+                              }
+                              setWeekPlan((prev) => ({ ...prev, [selectedKey]: meal }));
+                              setUserOverrides((prev) => { const next = new Set(prev); next.add(selectedKey); return next; });
+                            }}
+                            activeOpacity={0.85}>
+                            <Ionicons name="swap-horizontal-outline" size={12} color={SURFACE} />
+                            <Text style={styles.cookBtnText}>{plannedMeal ? 'Switch' : 'Plan'}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {plannedMeal && (MEAL_ELEVATIONS[plannedMeal.title]?.length ?? 0) > 0 && (
+                  <>
+                    <View style={styles.rowDivider}>
+                      <Ionicons name="sparkles-outline" size={14} color={BRAND_ORANGE} />
+                      <Text style={[styles.rowDividerLabel, { color: BRAND_ORANGE }]}>One ingredient away</Text>
+                      <View style={styles.rowDividerLine} />
+                    </View>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.suggestionScrollView}
+                      contentContainerStyle={styles.suggestionScrollContent}>
+                      {MEAL_ELEVATIONS[plannedMeal.title].map((e) => (
+                        <TouchableOpacity key={e.ingredient} style={[styles.elevateCard, { backgroundColor: e.bg }]} onPress={() => handleOpenPlannedMeal(elevationToMeal(e, plannedMeal))} activeOpacity={0.88}>
+                          <Text style={[styles.elevateResult, { color: e.accent }]}>{e.result}</Text>
+                          <Text style={styles.elevateNote} numberOfLines={2}>{e.note}</Text>
+                          <View style={[styles.elevateIngredientChip, { borderColor: e.accent }]}>
+                            <Ionicons name="add-circle-outline" size={12} color={e.accent} />
+                            <Text style={[styles.elevateIngredientText, { color: e.accent }]}>{e.ingredient}</Text>
+                          </View>
+                          <TouchableOpacity
+                            style={styles.switchBtn}
+                            onPress={() => {
+                              const meal = elevationToMeal(e, plannedMeal);
+                              setExtraSuggestions((prev) => {
+                                const existing = prev[selectedKey] ?? [];
+                                if (existing.find((x) => x.id === plannedMeal.id)) return prev;
+                                return { ...prev, [selectedKey]: [plannedMeal, ...existing] };
+                              });
+                              setWeekPlan((prev) => ({ ...prev, [selectedKey]: meal }));
+                              setUserOverrides((prev) => { const next = new Set(prev); next.add(selectedKey); return next; });
+                            }}
+                            activeOpacity={0.85}>
+                            <Ionicons name="swap-horizontal-outline" size={12} color={SURFACE} />
+                            <Text style={styles.switchBtnText}>Switch</Text>
+                          </TouchableOpacity>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </>
+                )}
+              </>
+            )}
+          </View>
+
+        </View>
+      </ScrollView>
+
+      <Modal
+        visible={!!selectedRecipe}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setSelectedRecipe(null)}>
+        {selectedRecipe && (
+          <RecipeSheet recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} isFav={favoriteIds.has(selectedRecipe.id)} onToggleFav={() => toggleFavorite(selectedRecipe.id, selectedRecipe)} />
+        )}
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
