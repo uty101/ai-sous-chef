@@ -1008,3 +1008,346 @@ function TrendCardItem({ t, onPress }: { t: MealDetail; onPress: () => void }) {
   );
 }
 
+export default function HomeScreen() {
+  const [user, setUser] = useState<User | null>(null);
+  const [recipes, setRecipes] = useState<MealDetail[]>([]);
+  const [isLoading, setIsLoading] = useState(!!supabase);
+  const [promptIdx] = useState(() => Math.floor(Math.random() * DAILY_PROMPTS.length));
+  const [selectedMeal, setSelectedMeal] = useState<MealDetail | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [viralDishes, setViralDishes] = useState<MealDetail[]>(() => VIRAL_POOL_PLACEHOLDER.slice(0, 4));
+  const [viralLoading, setViralLoading] = useState(!!GET_VIRAL_DISHES_FUNCTION_URL);
+
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    AsyncStorage.getItem(FAVORITES_KEY).then((stored) => {
+      if (stored) { try { setFavoriteIds(new Set(JSON.parse(stored) as string[])); } catch {} }
+    });
+  }, [isFocused]);
+
+  const toggleFavorite = (id: string, fullData?: MealDetail) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      const adding = !next.has(id);
+      if (adding) { next.add(id); } else { next.delete(id); }
+      AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+      if (fullData) {
+        AsyncStorage.getItem(SAVED_RECIPES_DATA_KEY).then(raw => {
+          const data: Record<string, object> = raw ? JSON.parse(raw) : {};
+          if (adding) {
+            data[id] = {
+              id: fullData.id, title: fullData.title, description: fullData.description,
+              ingredients: fullData.ingredients, steps: fullData.steps,
+              timeMinutes: fullData.timeMinutes, nutrition: fullData.nutrition,
+              cuisine: fullData.cuisine, bg: fullData.bg, accent: fullData.accent,
+              createdAt: new Date().toISOString(),
+            };
+          } else {
+            delete data[id];
+          }
+          AsyncStorage.setItem(SAVED_RECIPES_DATA_KEY, JSON.stringify(data));
+        });
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (!GET_VIRAL_DISHES_FUNCTION_URL) {
+      setViralDishes(VIRAL_POOL_PLACEHOLDER.slice(0, 4));
+      setViralLoading(false);
+      return;
+    }
+    fetch(GET_VIRAL_DISHES_FUNCTION_URL)
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: MealDetail[] = data.map((d: any) => ({
+            id: d.id,
+            title: d.title,
+            description: d.description ?? '',
+            cuisine: d.cuisine,
+            timeMinutes: d.time_minutes ?? 30,
+            ingredients: d.ingredients ?? [],
+            steps: d.steps ?? [],
+            nutrition: d.nutrition ?? { calories: 0, protein: 0, carbs: 0, fats: 0 },
+            accent: d.accent ?? '#FF5C35',
+            bg: d.bg ?? '#FFE8E2',
+            platform: d.platform,
+            views: d.views,
+          }));
+          setViralDishes(mapped);
+        } else {
+          setViralDishes(VIRAL_POOL_PLACEHOLDER.slice(0, 4));
+        }
+      })
+      .catch(() => setViralDishes(VIRAL_POOL_PLACEHOLDER.slice(0, 4)))
+      .finally(() => setViralLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+
+    const load = async () => {
+      const { data } = await supabase!.auth.getUser();
+      const currentUser = data.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        const { data: rows } = await supabase!
+          .from('recipes')
+          .select('id, title, time_minutes, created_at')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (Array.isArray(rows)) {
+          setRecipes(
+            rows.map((r) => ({
+              id: r.id,
+              title: r.title,
+              timeMinutes: r.time_minutes ?? 0,
+              createdAt: r.created_at,
+              description: '',
+              ingredients: [],
+              steps: [],
+              nutrition: { calories: 0, protein: 0, carbs: 0, fats: 0 },
+              accent: MUTED,
+              bg: SURFACE,
+            }))
+          );
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    load();
+
+    const { data: authListener } = supabase!.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (!currentUser) {
+        setRecipes([]);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const greeting = getGreeting();
+  const prompt = DAILY_PROMPTS[promptIdx];
+  const displayedRecipes = recipes.length > 0 ? recipes : MOCK_RECENT_RECIPES;
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <StatusBar style="light" backgroundColor={DARK} />
+      <View style={[styles.hero, { paddingTop: TOP_INSET + 22 }]}>
+        <Text style={styles.eyebrow}>{greeting}, Chef</Text>
+        <Text style={styles.title}>What are we cooking today?</Text>
+      </View>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+
+          {/* From Your Pantry */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="basket-outline" size={14} color={PRIMARY} />
+              <Text style={styles.sectionTitle}>From Your Pantry</Text>
+              <View style={styles.sectionDividerLine} />
+              <TouchableOpacity
+                style={styles.pantryBadge}
+                onPress={() => router.push('/(tabs)/pantry')}
+                activeOpacity={0.8}>
+                <Text style={styles.pantryBadgeText}>15 items</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.cardScrollWrapper}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cardScroll}>
+                {PANTRY_RECS.map((rec) => (
+                  <TouchableOpacity
+                    key={rec.id}
+                    style={[styles.recCard, { backgroundColor: rec.bg, height: 220 }]}
+                    onPress={() => setSelectedMeal(rec)}
+                    activeOpacity={0.88}>
+                    <View style={styles.recCardBody}>
+                      <View style={styles.recCardTop}>
+                        <View style={[styles.goalPill, { backgroundColor: rec.accent }]}>
+                          <Text style={styles.goalPillText}>{rec.goal?.split(' ').pop()}</Text>
+                        </View>
+                        <View style={styles.timeBadge}>
+                          <Ionicons name="time-outline" size={11} color={MUTED} />
+                          <Text style={styles.timeBadgeText}>{rec.timeMinutes} min</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.recCardTitle, { color: rec.accent, textShadowColor: DARK }]} numberOfLines={2}>{rec.title}</Text>
+                      <View style={styles.ingredientPillRow}>
+                        {rec.ingredients
+                          .map((ing) => ({ ing, name: ingredientName(ing) }))
+                          .filter((x): x is { ing: string; name: string } => x.name !== null)
+                          .slice(0, 6)
+                          .map(({ ing, name }) => (
+                            <View key={ing} style={[styles.ingredientPill, { backgroundColor: `${rec.accent}22` }]}>
+                              <Text style={[styles.ingredientPillText, { color: rec.accent }]}>{name}</Text>
+                            </View>
+                          ))}
+                      </View>
+                      {rec.cuisine ? <View style={[styles.cuisineChip, { alignSelf: 'flex-end' }]}><Text style={styles.cuisineChipText}>{rec.cuisine}</Text></View> : null}
+                    </View>
+                    <MacroRow
+                      calories={rec.nutrition.calories}
+                      protein={rec.nutrition.protein}
+                      carbs={rec.nutrition.carbs}
+                      fats={rec.nutrition.fats}
+                      accent={rec.accent}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+
+          {/* Recent Recipes */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="restaurant-outline" size={14} color={PRIMARY} />
+              <Text style={styles.sectionTitle}>Recent Recipes</Text>
+              <View style={styles.sectionDividerLine} />
+              <TouchableOpacity onPress={() => router.push('/(tabs)/me')} activeOpacity={0.8}>
+                <View style={styles.pantryBadge}>
+                  <Text style={styles.pantryBadgeText}>{displayedRecipes.length} recipes</Text>
+                </View>
+              </TouchableOpacity>
+              {user && recipes.length > 0 && (
+                <TouchableOpacity onPress={() => router.push('/(tabs)/saved')} activeOpacity={0.8}>
+                  <Text style={styles.sectionLink}>See all</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {isLoading ? (
+              <View style={styles.emptyCard}>
+                <ActivityIndicator size="small" color={PRIMARY} />
+                <Text style={styles.emptySubtitle}>Loading your recipes...</Text>
+              </View>
+            ) : (
+              <View style={styles.cardScrollWrapper}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.cardScroll}>
+                  {displayedRecipes.map((recipe) => (
+                    <TouchableOpacity
+                      key={recipe.id}
+                      style={[styles.recCard, { backgroundColor: recipe.bg || SURFACE, height: 220 }]}
+                      onPress={() => setSelectedMeal(recipe)}
+                      activeOpacity={0.88}>
+                      <View style={styles.recCardBody}>
+                        <View style={styles.recCardTop}>
+                          <View style={styles.agopill}>
+                            <Text style={styles.agoPillText}>{recipe.createdAt ? timeAgo(recipe.createdAt) : ''}</Text>
+                          </View>
+                          {recipe.timeMinutes > 0 && (
+                            <View style={styles.timeBadge}>
+                              <Ionicons name="time-outline" size={11} color={MUTED} />
+                              <Text style={styles.timeBadgeText}>{recipe.timeMinutes} min</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.recCardTitle, { color: recipe.accent || MUTED, textShadowColor: DARK }]} numberOfLines={2}>{recipe.title}</Text>
+                        <View style={styles.ingredientPillRow}>
+                          {recipe.ingredients
+                            .map((ing) => ({ ing, name: ingredientName(ing) }))
+                            .filter((x): x is { ing: string; name: string } => x.name !== null)
+                            .slice(0, 6)
+                            .map(({ ing, name }) => (
+                              <View key={ing} style={[styles.ingredientPill, { backgroundColor: `${recipe.accent || MUTED}22` }]}>
+                                <Text style={[styles.ingredientPillText, { color: recipe.accent || MUTED }]}>{name}</Text>
+                              </View>
+                            ))}
+                        </View>
+                        {recipe.cuisine ? <View style={[styles.cuisineChip, { alignSelf: 'flex-end' }]}><Text style={styles.cuisineChipText}>{recipe.cuisine}</Text></View> : null}
+                      </View>
+                      <MacroRow
+                        calories={recipe.nutrition.calories}
+                        protein={recipe.nutrition.protein}
+                        carbs={recipe.nutrition.carbs}
+                        fats={recipe.nutrition.fats}
+                        accent={recipe.accent || MUTED}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+
+          {/* Daily spark */}
+          <TouchableOpacity
+            style={[styles.promptCard, { backgroundColor: prompt.bg }]}
+            onPress={() => router.push(prompt.route as any)}
+            activeOpacity={0.85}>
+            <View style={styles.promptIcon}>
+              <Ionicons name={prompt.icon as any} size={20} color={prompt.color} />
+            </View>
+            <View style={styles.promptCopy}>
+              <Text style={styles.promptText}>{prompt.text}</Text>
+              <Text style={[styles.promptAction, { color: prompt.color }]}>{prompt.action} →</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Blowing Up — viral dishes from yesterday */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="flame-outline" size={14} color={PRIMARY} />
+              <Text style={styles.sectionTitle}>Blowing Up</Text>
+              <View style={styles.sectionDividerLine} />
+              <Text style={styles.sectionMeta}>From yesterday</Text>
+            </View>
+            {viralLoading ? (
+              <View style={styles.emptyCard}>
+                <ActivityIndicator size="small" color={PRIMARY} />
+                <Text style={styles.emptySubtitle}>Fetching what's trending...</Text>
+              </View>
+            ) : (
+              <View style={styles.cardScrollWrapper}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.cardScroll}>
+                  {viralDishes.slice().sort((a, b) => parseViews(b.views) - parseViews(a.views)).map((t) => (
+                    <TrendCardItem key={t.id} t={t} onPress={() => setSelectedMeal(t)} />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+
+        </View>
+      </ScrollView>
+
+      {/* Meal Detail Modal */}
+      <Modal
+        visible={!!selectedMeal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setSelectedMeal(null)}>
+        {selectedMeal && (
+          <MealSheet meal={selectedMeal} onClose={() => setSelectedMeal(null)} isFav={favoriteIds.has(selectedMeal.id)} onToggleFav={() => toggleFavorite(selectedMeal.id, selectedMeal)} />
+        )}
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
