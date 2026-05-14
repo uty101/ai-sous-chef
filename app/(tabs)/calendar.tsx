@@ -329,3 +329,58 @@ function buildAutoWeekPlan(
   return plan;
 }
 
+function elevationToMeal(e: ElevationHint, base: PlannedMeal): PlannedMeal {
+  return {
+    id: `elev-${e.ingredient.replace(/\s+/g, '-').toLowerCase()}`,
+    title: e.result,
+    cuisine: base.cuisine,
+    timeMinutes: base.timeMinutes,
+    goal: e.label,
+    accent: e.accent,
+    bg: e.bg,
+    uses: [e.ingredient, ...base.uses],
+  };
+}
+
+function getSuggestionsForDay(date: Date): PlannedMeal[] {
+  const offset = date.getDay() * 3;
+  return [
+    MEAL_POOL[offset % MEAL_POOL.length],
+    MEAL_POOL[(offset + 1) % MEAL_POOL.length],
+    MEAL_POOL[(offset + 2) % MEAL_POOL.length],
+  ];
+}
+
+function getDateRange(): DateEntry[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Array.from({ length: DAYS_BACK + 1 + DAYS_FORWARD }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - DAYS_BACK + i);
+    const isToday = d.toDateString() === today.toDateString();
+    return { date: d, isToday, isPast: d < today && !isToday };
+  });
+}
+
+function formatRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function formatDayLabel(date: Date): string {
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.sectionTitle}>{children}</Text>;
+}
+
