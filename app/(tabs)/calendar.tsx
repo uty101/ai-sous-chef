@@ -194,3 +194,81 @@ const MOCK_RECIPE_DETAILS: Record<string, Omit<RecipeDetail, 'id' | 'createdAt'>
   },
 };
 
+const MEAL_POOL: PlannedMeal[] = [
+  { id: 'p1',  title: 'Lemon Chickpea Bowls',    cuisine: 'Mediterranean', timeMinutes: 25, goal: 'Healthy',      accent: GREEN,        bg: '#E8F8EE', uses: ['Chickpeas', 'Lemon', 'Garlic', 'Spinach'] },
+  { id: 'p2',  title: 'Tofu Noodle Stir Fry',    cuisine: 'East Asian',    timeMinutes: 20, goal: 'Quick',        accent: BRAND_ORANGE, bg: '#FFE8E2', uses: ['Tofu', 'Soy sauce', 'Garlic'] },
+  { id: 'p3',  title: 'Garlic Lemon Chicken',     cuisine: 'European',      timeMinutes: 22, goal: 'Protein',      accent: BRAND_ORANGE, bg: '#FFE8E2', uses: ['Chicken', 'Garlic', 'Lemon', 'Spinach'] },
+  { id: 'p4',  title: 'Loaded Tortilla Skillet',  cuisine: 'Mexican',       timeMinutes: 30, goal: 'Quick',        accent: GOLD,         bg: '#FFF3D0', uses: ['Eggs', 'Onion', 'Tomatoes'] },
+  { id: 'p5',  title: 'Greek Yogurt Bowl',         cuisine: 'Mediterranean', timeMinutes: 10, goal: 'Healthy',      accent: GREEN,        bg: '#E8F8EE', uses: ['Greek yogurt', 'Lemon', 'Garlic'] },
+  { id: 'p6',  title: 'Protein Egg Scramble',     cuisine: 'Any',           timeMinutes: 10, goal: 'Protein', accent: BRAND_ORANGE, bg: '#FFE8E2', uses: ['Eggs', 'Spinach', 'Garlic'] },
+  { id: 'p7',  title: 'Black Bean Rice Bowl',      cuisine: 'Mexican',       timeMinutes: 20, goal: 'Healthy',      accent: BLUE,         bg: '#EBF3FF', uses: ['Rice', 'Onion', 'Garlic'] },
+  { id: 'p8',  title: 'Pasta Arrabiata',           cuisine: 'Italian',       timeMinutes: 18, goal: 'Quick',        accent: GOLD,         bg: '#FFF3D0', uses: ['Pasta', 'Tomatoes', 'Garlic', 'Olive oil'] },
+  { id: 'p9',  title: 'Broccoli Rice Bowl',        cuisine: 'Asian',         timeMinutes: 25, goal: 'Healthy',      accent: GREEN,        bg: '#E8F8EE', uses: ['Rice', 'Eggs', 'Soy sauce'] },
+  { id: 'p10', title: 'Chicken Tikka Masala',      cuisine: 'Indian',        timeMinutes: 40, goal: 'Protein', accent: BRAND_ORANGE, bg: '#FFE8E2', uses: ['Chicken', 'Onion', 'Garlic', 'Greek yogurt'] },
+  { id: 'p11', title: 'Pasta Pomodoro',            cuisine: 'Italian',       timeMinutes: 15, goal: 'Quick',        accent: GOLD,         bg: '#FFF3D0', uses: ['Pasta', 'Tomatoes', 'Garlic', 'Olive oil'] },
+  { id: 'p12', title: 'Avocado Toast & Eggs',      cuisine: 'Any',           timeMinutes: 12, goal: 'Healthy',      accent: GREEN,        bg: '#E8F8EE', uses: ['Eggs', 'Lemon'] },
+];
+
+const MEAL_ELEVATIONS: Record<string, ElevationHint[]> = {
+  'Lemon Chickpea Bowls': [
+    { ingredient: 'Feta',       label: 'Gourmet',       result: 'Greek Chickpea Bowl',       note: 'Crumbled feta adds salty creaminess and makes this fully Mediterranean.',           accent: BLUE,         bg: '#EBF3FF' },
+    { ingredient: 'Chicken',    label: 'Protein',  result: 'Chickpea Chicken Bowl',      note: 'Grilled chicken alongside the chickpeas doubles the protein in minutes.',            accent: BRAND_ORANGE, bg: '#FFE8E2' },
+    { ingredient: 'Tahini',     label: 'Flavour',result: 'Levantine Chickpea Bowl',   note: 'A tahini drizzle transforms the dressing into a nutty, restaurant-quality sauce.',   accent: GOLD,         bg: '#FFF3D0' },
+  ],
+  'Tofu Noodle Stir Fry': [
+    { ingredient: 'Egg',          label: 'Quick', result: 'Egg Fried Noodles',        note: 'Crack two eggs into the wok and you have a classic egg-fried noodle in seconds.',     accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Peanut butter',label: 'New',   result: 'Peanut Satay Noodles',     note: 'A spoonful with soy and lime creates a rich Thai-style satay sauce.',                 accent: BRAND_ORANGE, bg: '#FFE8E2' },
+    { ingredient: 'Broccoli',     label: 'Veg',     result: 'Tofu Broccoli Noodles',    note: 'Blanched broccoli florets bulk this up and add colour and nutrients.',                accent: GREEN,        bg: '#E8F8EE' },
+  ],
+  'Garlic Lemon Chicken': [
+    { ingredient: 'Capers',       label: 'Gourmet',       result: 'Chicken Piccata',          note: 'A handful of capers in the pan sauce and you have a classic Italian piccata.',        accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Double cream', label: 'Comfort',  result: 'Creamy Garlic Chicken',    note: 'A splash of cream turns the pan sauce into something deeply indulgent.',              accent: BLUE,         bg: '#EBF3FF' },
+    { ingredient: 'Chilli flakes',label: 'Heat',    result: 'Spicy Lemon Chicken',      note: 'A pinch of chilli flakes adds a fiery kick that lifts the whole dish.',               accent: BRAND_ORANGE, bg: '#FFE8E2' },
+  ],
+  'Loaded Tortilla Skillet': [
+    { ingredient: 'Avocado',     label: 'Fresh', result: 'Huevos Rancheros',         note: 'Sliced avocado on top makes this a proper Mexican brunch classic.',                   accent: GREEN,        bg: '#E8F8EE' },
+    { ingredient: 'Black beans', label: 'Hearty',  result: 'Bean & Egg Skillet',       note: 'Canned black beans add plant protein and turn this into a full dinner.',              accent: BRAND_ORANGE, bg: '#FFE8E2' },
+    { ingredient: 'Cheddar',     label: 'Comfort',result: 'Cheesy Tortilla Bake',     note: 'Grated cheddar melted over the top makes this incredibly satisfying.',                accent: GOLD,         bg: '#FFF3D0' },
+  ],
+  'Greek Yogurt Bowl': [
+    { ingredient: 'Honey',      label: 'Sweet',   result: 'Honey Yogurt Parfait',     note: 'A drizzle of honey and some granola turns this into a proper breakfast parfait.',     accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Berries',    label: 'Antioxidant',result: 'Berry Yogurt Bowl',       note: 'Fresh or frozen berries add colour and sweetness with no extra effort.',              accent: BLUE,         bg: '#EBF3FF' },
+    { ingredient: 'Cucumber',   label: 'Savoury',   result: 'Tzatziki Bowl',            note: 'Grated cucumber, dill, and garlic turn the yogurt into a proper tzatziki.',          accent: GREEN,        bg: '#E8F8EE' },
+  ],
+  'Protein Egg Scramble': [
+    { ingredient: 'Smoked salmon',label: 'Luxury', result: 'Smoked Salmon Scramble',  note: 'Folds of smoked salmon turn a simple scramble into a weekend brunch moment.',         accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Feta',         label: 'Mediterranean',  result: 'Greek Scrambled Eggs',    note: 'Crumbled feta and a handful of olives give this a Mediterranean edge.',              accent: BLUE,         bg: '#EBF3FF' },
+    { ingredient: 'Chorizo',      label: 'Smoky',   result: 'Chorizo Egg Scramble',    note: 'Crispy chorizo adds smokiness and spice that make this unforgettable.',               accent: BRAND_ORANGE, bg: '#FFE8E2' },
+  ],
+  'Black Bean Rice Bowl': [
+    { ingredient: 'Avocado',    label: 'Creamy',  result: 'Burrito Bowl',             note: 'Sliced avocado and a squeeze of lime turns this into a proper burrito bowl.',         accent: GREEN,        bg: '#E8F8EE' },
+    { ingredient: 'Chicken',    label: 'Protein',    result: 'Black Bean Chicken',       note: 'Grilled spiced chicken on top makes this a complete, filling meal.',                  accent: BRAND_ORANGE, bg: '#FFE8E2' },
+    { ingredient: 'Sour cream', label: 'Comfort', result: 'Loaded Rice Bowl',         note: 'A dollop of sour cream and grated cheddar completes the Tex-Mex experience.',        accent: GOLD,         bg: '#FFF3D0' },
+  ],
+  'Pasta Arrabiata': [
+    { ingredient: 'Chicken',    label: 'Protein',    result: 'Chicken Arrabbiata',       note: 'Sliced chicken breast turns this from a quick dish into a protein-packed main.',      accent: BRAND_ORANGE, bg: '#FFE8E2' },
+    { ingredient: 'Anchovies',  label: 'Gourmet',   result: 'Pasta Puttanesca',         note: 'Two anchovies melt into the sauce and add incredible umami depth.',                   accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Courgette',  label: 'Veg',       result: 'Pasta Primavera',          note: 'Ribboned courgette and cherry tomatoes make this lighter and colourful.',             accent: GREEN,        bg: '#E8F8EE' },
+  ],
+  'Broccoli Rice Bowl': [
+    { ingredient: 'Salmon',     label: 'Omega-3',   result: 'Salmon Rice Bowl',         note: 'A pan-fried salmon fillet turns this into a restaurant-worthy bowl.',                 accent: BLUE,         bg: '#EBF3FF' },
+    { ingredient: 'Miso paste', label: 'Umami',   result: 'Miso Broccoli Bowl',       note: 'A spoon of miso stirred into the sauce adds deep, complex savouriness.',              accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Avocado',    label: 'Creamy',   result: 'Green Power Bowl',         note: 'Sliced avocado alongside the broccoli creates a vibrant green power bowl.',           accent: GREEN,        bg: '#E8F8EE' },
+  ],
+  'Chicken Tikka Masala': [
+    { ingredient: 'Naan bread', label: 'Complete',   result: 'Tikka Masala with Naan',   note: 'Fresh or frozen naan makes this a proper restaurant experience at home.',             accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Spinach',    label: 'Healthy',       result: 'Saag Chicken Masala',      note: 'A big handful of spinach wilted in turns this into a saag-style curry.',              accent: GREEN,        bg: '#E8F8EE' },
+    { ingredient: 'Paneer',     label: 'Veggie',result: 'Mixed Tikka Masala',       note: 'Half chicken, half paneer gives extra texture. Great for sharing.',                  accent: BLUE,         bg: '#EBF3FF' },
+  ],
+  'Pasta Pomodoro': [
+    { ingredient: 'Burrata',    label: 'Luxury',  result: 'Burrata Pomodoro',         note: 'A ball of burrata on top transforms this simple pasta into pure indulgence.',         accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Prawns',     label: 'Seafood',   result: 'Prawn Pomodoro',           note: 'Tiger prawns in the tomato sauce make this a classic Italian seafood pasta.',         accent: BLUE,         bg: '#EBF3FF' },
+    { ingredient: 'Nduja',      label: 'Spicy',    result: 'Nduja Pasta',              note: 'A spoonful of spreadable nduja melts in for a fiery Calabrian kick.',                 accent: BRAND_ORANGE, bg: '#FFE8E2' },
+  ],
+  'Avocado Toast & Eggs': [
+    { ingredient: 'Smoked salmon',label: 'Luxury', result: 'Smoked Salmon Avo Toast', note: 'Draped smoked salmon turns this into a proper café-style brunch.',                    accent: GOLD,         bg: '#FFF3D0' },
+    { ingredient: 'Feta',         label: 'Mediterranean',  result: 'Avo Toast with Feta',     note: 'Crumbled feta and chilli flakes take the flavour to another level.',                  accent: BLUE,         bg: '#EBF3FF' },
+    { ingredient: 'Chilli oil',   label: 'Spicy',     result: 'Spicy Avo Toast',         note: 'A drizzle of chilli oil adds heat and makes this instantly more exciting.',            accent: BRAND_ORANGE, bg: '#FFE8E2' },
+  ],
+};
+
