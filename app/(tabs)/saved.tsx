@@ -290,3 +290,50 @@ const MOCK_SAVED_RECIPES: SavedRecipe[] = [
   },
 ];
 
+function isRecipeResult(value: unknown): value is RecipeResult {
+  if (!value || typeof value !== 'object') return false;
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.title === 'string' &&
+    typeof item.description === 'string' &&
+    Array.isArray(item.ingredients) &&
+    item.ingredients.every((e) => typeof e === 'string') &&
+    Array.isArray(item.steps) &&
+    item.steps.every((e) => typeof e === 'string') &&
+    typeof item.timeMinutes === 'number'
+  );
+}
+
+function normalizeSavedRecipe(value: unknown): SavedRecipe | null {
+  if (!value || typeof value !== 'object') return null;
+  const item = value as Record<string, unknown>;
+  const mappedRecipe: RecipeResult = {
+    title: typeof item.title === 'string' ? item.title : '',
+    description: typeof item.description === 'string' ? item.description : '',
+    ingredients: Array.isArray(item.ingredients)
+      ? item.ingredients.filter((e): e is string => typeof e === 'string')
+      : [],
+    steps: Array.isArray(item.steps)
+      ? item.steps.filter((e): e is string => typeof e === 'string')
+      : [],
+    timeMinutes: typeof item.time_minutes === 'number' ? item.time_minutes : 0,
+    cuisine: typeof item.cuisine === 'string' ? item.cuisine : undefined,
+    nutrition: (() => {
+      const n = item.nutrition as any;
+      if (!n || typeof n !== 'object') return undefined;
+      const cal = typeof n.calories === 'number' ? n.calories : null;
+      const pro = typeof n.protein === 'number' ? n.protein : null;
+      const carb = typeof n.carbs === 'number' ? n.carbs : null;
+      const fat = typeof n.fats === 'number' ? n.fats : null;
+      if (cal == null && pro == null && carb == null && fat == null) return undefined;
+      return { calories: cal ?? 0, protein: pro ?? 0, carbs: carb ?? 0, fats: fat ?? 0 };
+    })(),
+  };
+  if (!isRecipeResult(mappedRecipe) || typeof item.id !== 'string') return null;
+  return {
+    id: item.id,
+    createdAt: typeof item.created_at === 'string' ? item.created_at : '',
+    ...mappedRecipe,
+  };
+}
+
