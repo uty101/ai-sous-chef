@@ -513,3 +513,262 @@ function RecipeCard({ recipe, isFav, onPress }: {
   );
 }
 
+export default function SavedScreen() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isFetchingRecipes, setIsFetchingRecipes] = useState(false);
+  const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<SavedRecipeCard | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [storedRecipes, setStoredRecipes] = useState<SavedRecipeCard[]>([]);
+
+  const loadAndSeedRecipes = useCallback(async () => {
+    const seeded = await AsyncStorage.getItem(SAVED_SEEDED_KEY);
+    if (!seeded) {
+      const seedData: Record<string, SavedRecipeCard> = {};
+      for (const r of MOCK_SAVED_RECIPES) {
+        seedData[r.id] = { ...r, ...recipeColors(r.id) };
+      }
+      await AsyncStorage.setItem(SAVED_RECIPES_DATA_KEY, JSON.stringify(seedData));
+      await AsyncStorage.setItem(SAVED_SEEDED_KEY, '1');
+      // Sync seeded IDs into FAVORITES_KEY so other tabs show filled hearts
+      const rawFavs = await AsyncStorage.getItem(FAVORITES_KEY);
+      const favSet = new Set<string>(rawFavs ? JSON.parse(rawFavs) : []);
+      Object.keys(seedData).forEach(id => favSet.add(id));
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify([...favSet]));
+    }
+    const raw = await AsyncStorage.getItem(SAVED_RECIPES_DATA_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Record<string, SavedRecipeCard>;
+        // Running cuisine check — infer any missing or generic labels and persist corrections
+        let dirty = false;
+        for (const id of Object.keys(parsed)) {
+          const r = parsed[id];
+          if (!r.cuisine || r.cuisine === 'International') {
+            const inferred = inferCuisine(r.title, r.description, r.ingredients);
+            if (inferred) {
+              parsed[id] = { ...r, cuisine: inferred };
+              dirty = true;
+            }
+          }
+        }
+        if (dirty) await AsyncStorage.setItem(SAVED_RECIPES_DATA_KEY, JSON.stringify(parsed));
+        setStoredRecipes(
+          Object.values(parsed).sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )
+        );
+      } catch {}
+    }
+  }, []);
+
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    if (isFocused) loadAndSeedRecipes();
+  }, [isFocused, loadAndSeedRecipes]);
+
+  const removeStoredRecipe = async (id: string) => {
+    const [raw, rawFavs] = await Promise.all([
+      AsyncStorage.getItem(SAVED_RECIPES_DATA_KEY),
+      AsyncStorage.getItem(FAVORITES_KEY),
+    ]);
+    const parsed: Record<string, SavedRecipeCard> = raw ? JSON.parse(raw) : {};
+    delete parsed[id];
+    const favs: string[] = rawFavs ? JSON.parse(rawFavs) : [];
+    await Promise.all([
+      AsyncStorage.setItem(SAVED_RECIPES_DATA_KEY, JSON.stringify(parsed)),
+      AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs.filter(f => f !== id))),
+    ]);
+    setStoredRecipes(prev => prev.filter(r => r.id !== id));
+  };
+
+  useEffect(() => {
+    AsyncStorage.getItem(FAVORITES_KEY).then((stored) => {
+      if (stored) {
+        try { setFavoriteIds(new Set(JSON.parse(stored) as string[])); } catch {}
+      }
+    });
+  }, []);
+
+  const toggleFavorite = (recipeId: string) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(recipeId)) { next.delete(recipeId); } else { next.add(recipeId); }
+      AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const fetchSavedRecipes = async (currentUser: User) => {
+    if (!supabase) { setSavedRecipes([]); return; }
+    setIsFetchingRecipes(true);
+    try {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const normalized = Array.isArray(data)
+        ? data.map(normalizeSavedRecipe).filter((r): r is SavedRecipe => r !== null)
+        : [];
+      setSavedRecipes(normalized);
+    } catch (err) {
+      console.log('Failed to fetch saved recipes:', err);
+    } finally {
+      setIsFetchingRecipes(false);
+    }
+  };
+
+  useEffect(() => {
+    const supabaseClient = supabase;
+    if (!supabaseClient) { setIsAuthLoading(false); return; }
+
+    const loadInitialSession = async () => {
+      const { data, error } = await supabaseClient.auth.getUser();
+      if (error && error.name !== 'AuthSessionMissingError') console.log('Failed to load user:', error);
+      const currentUser = data.user ?? null;
+      setUser(currentUser);
+      if (currentUser) await fetchSavedRecipes(currentUser);
+      else setSavedRecipes([]);
+      setIsAuthLoading(false);
+    };
+
+    loadInitialSession();
+
+    const { data: authListener } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) { await fetchSavedRecipes(currentUser); }
+      else { setSavedRecipes([]); setSelectedRecipe(null); }
+      setIsAuthLoading(false);
+    });
+
+    return () => { authListener.subscription.unsubscribe(); };
+  }, []);
+
+  const baseRecipes = savedRecipes.length > 0 ? savedRecipes : storedRecipes;
+  const baseWithColors = withColors(baseRecipes);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
+  const visibleRecipes = baseWithColors.filter((recipe) =>
+    !normalizedSearch ||
+    recipe.title.toLowerCase().includes(normalizedSearch) ||
+    recipe.description.toLowerCase().includes(normalizedSearch),
+  );
+
+  const groups = groupRecipesByDate(visibleRecipes);
+
+  if (isAuthLoading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { paddingTop: TOP_INSET }]} edges={['bottom']}>
+        <View style={styles.loadingScreen}>
+          <ActivityIndicator size="large" color="red" />
+          <Text style={styles.loadingText}>TEST TEST Loading your saved recipes...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <StatusBar style="light" backgroundColor={DARK} />
+      <View style={[styles.hero, { paddingTop: TOP_INSET + 22 }]}>
+        <Text style={styles.eyebrow}>Recipe library TEST</Text>
+        <Text style={styles.title}>Saved Recipes TEST</Text>
+      </View>
+
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+
+          {/* Search */}
+          <View style={styles.searchBox}>
+            <Ionicons name="search-outline" size={16} color={MUTED} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search saved recipes"
+              placeholderTextColor={MUTED}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={16} color={MUTED} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Date-grouped recipe sections */}
+          {groups.length > 0 ? (
+            groups.map(({ label, data }) => (
+              <View key={label} style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="bookmark-outline" size={14} color={PRIMARY} />
+                  <Text style={styles.sectionTitle}>{label}</Text>
+                  <View style={styles.sectionDividerLine} />
+                  {isFetchingRecipes && label === groups[0].label ? (
+                    <ActivityIndicator size="small" color={PRIMARY} />
+                  ) : (
+                    <View style={styles.countBadge}>
+                      <Text style={styles.countBadgeText}>{data.length}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.cardList}>
+                  {data.map((recipe) => (
+                    <RecipeCard
+                      key={recipe.id}
+                      recipe={recipe}
+                      isFav={savedRecipes.length > 0 ? favoriteIds.has(recipe.id) : true}
+                      onPress={() => setSelectedRecipe(recipe)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyCard}>
+              <Ionicons name="bookmarks-outline" size={28} color={MUTED} />
+              <Text style={styles.emptyTitle}>No matching recipes</Text>
+              <Text style={styles.emptySubtitle}>Try a different search or filter.</Text>
+            </View>
+          )}
+
+          {/* Login nudge */}
+          {!user && SUPABASE_ENABLED && (
+            <View style={styles.nudgeCard}>
+              <Ionicons name="bookmark-outline" size={20} color={PRIMARY} />
+              <Text style={styles.nudgeText}>Log in to save your own generated recipes here.</Text>
+            </View>
+          )}
+
+        </View>
+      </ScrollView>
+
+      {/* Meal detail modal */}
+      <Modal
+        visible={!!selectedRecipe}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setSelectedRecipe(null)}>
+        {selectedRecipe && (
+          <MealSheet
+            meal={selectedRecipe}
+            onClose={() => setSelectedRecipe(null)}
+            isFav={savedRecipes.length > 0 ? favoriteIds.has(selectedRecipe.id) : true}
+            onToggleFav={() => {
+              if (savedRecipes.length > 0) { toggleFavorite(selectedRecipe.id); }
+              else { removeStoredRecipe(selectedRecipe.id); setSelectedRecipe(null); }
+            }}
+          />
+        )}
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
