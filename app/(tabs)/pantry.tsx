@@ -149,3 +149,97 @@ const QUICK_MEALS: QuickMeal[] = [
   },
 ];
 
+const BRAND_ORANGE = '#FF5C35';
+const CREAM = '#FFF8F0';
+const SURFACE = '#FFFFFF';
+const INK = '#1C1F2E';
+const MUTED = '#8E93A8';
+const GOLD = '#FFBA35';
+
+const BASKET_KEY = 'pantry_basket';
+const STAPLES_KEY = 'pantry_staples';
+const SHOPPING_MODAL_KEY = 'shopping_list_modal_v2';
+const TEAL = '#2A9D8F';
+
+const TOP_INSET = initialWindowMetrics?.insets.top ?? 0;
+
+type ShoppingItem = { name: string; selected: boolean };
+
+const SUGGESTION_POOL: Array<{ name: string; category: string }> = [
+  // Protein
+  { name: 'Chicken breast', category: 'Protein' },
+  { name: 'Chicken thighs', category: 'Protein' },
+  { name: 'Salmon fillets', category: 'Protein' },
+  { name: 'Eggs', category: 'Protein' },
+  { name: 'Minced beef', category: 'Protein' },
+  { name: 'Prawns', category: 'Protein' },
+  { name: 'Tofu', category: 'Protein' },
+  { name: 'Tuna', category: 'Protein' },
+  { name: 'Lamb chops', category: 'Protein' },
+  { name: 'Cod fillets', category: 'Protein' },
+  { name: 'Paneer', category: 'Protein' },
+  { name: 'Pork tenderloin', category: 'Protein' },
+  { name: 'Tempeh', category: 'Protein' },
+  // Fruit
+  { name: 'Banana', category: 'Fruit' },
+  { name: 'Apples', category: 'Fruit' },
+  { name: 'Mango', category: 'Fruit' },
+  { name: 'Strawberries', category: 'Fruit' },
+  { name: 'Blueberries', category: 'Fruit' },
+  { name: 'Raspberries', category: 'Fruit' },
+  { name: 'Grapes', category: 'Fruit' },
+  { name: 'Oranges', category: 'Fruit' },
+  { name: 'Melon', category: 'Fruit' },
+  { name: 'Pomegranate', category: 'Fruit' },
+  // Veg
+  { name: 'Spinach', category: 'Veg' },
+  { name: 'Broccoli', category: 'Veg' },
+  { name: 'Tomatoes', category: 'Veg' },
+  { name: 'Cherry tomatoes', category: 'Veg' },
+  { name: 'Avocado', category: 'Veg' },
+  { name: 'Red onion', category: 'Veg' },
+  { name: 'White onion', category: 'Veg' },
+  { name: 'Mushrooms', category: 'Veg' },
+  { name: 'Courgette', category: 'Veg' },
+  { name: 'Red pepper', category: 'Veg' },
+  { name: 'Cucumber', category: 'Veg' },
+  { name: 'Kale', category: 'Veg' },
+  { name: 'Leek', category: 'Veg' },
+  { name: 'Carrot', category: 'Veg' },
+  { name: 'Sweet potato', category: 'Veg' },
+  { name: 'Aubergine', category: 'Veg' },
+  { name: 'Celery', category: 'Veg' },
+  { name: 'Beetroot', category: 'Veg' },
+  { name: 'Asparagus', category: 'Veg' },
+  // Grains & Carbs
+  { name: 'Pasta', category: 'Grains' },
+  { name: 'Rice', category: 'Grains' },
+  { name: 'Sourdough', category: 'Grains' },
+  { name: 'Oats', category: 'Grains' },
+  { name: 'Quinoa', category: 'Grains' },
+  { name: 'Naan', category: 'Grains' },
+  { name: 'Couscous', category: 'Grains' },
+  { name: 'Tortillas', category: 'Grains' },
+  { name: 'Bread', category: 'Grains' },
+  // Dairy
+  { name: 'Greek yogurt', category: 'Dairy' },
+  { name: 'Cheddar', category: 'Dairy' },
+  { name: 'Feta', category: 'Dairy' },
+  { name: 'Mozzarella', category: 'Dairy' },
+  { name: 'Double cream', category: 'Dairy' },
+  { name: 'Parmesan', category: 'Dairy' },
+  { name: 'Milk', category: 'Dairy' },
+  { name: 'Cream cheese', category: 'Dairy' },
+  { name: 'Halloumi', category: 'Dairy' },
+  { name: 'Butter', category: 'Dairy' },
+  // Tins & Pantry
+  { name: 'Chickpeas', category: 'Tins' },
+  { name: 'Chopped tomatoes', category: 'Tins' },
+  { name: 'Coconut milk', category: 'Tins' },
+  { name: 'Black beans', category: 'Tins' },
+  { name: 'Red lentils', category: 'Tins' },
+  { name: 'Kidney beans', category: 'Tins' },
+  { name: 'Coconut cream', category: 'Tins' },
+  { name: 'Passata', category: 'Tins' },
+];
+
