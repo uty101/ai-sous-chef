@@ -549,3 +549,943 @@ function RecipeCard({ recipe, vibe, diet, isFav, onToggleFav }: {
   );
 }
 
+export default function CookScreen() {
+  const { capturedImageUri, capturedAt } = useLocalSearchParams<{
+    capturedImageUri?: string;
+    capturedAt?: string;
+  }>();
+  const [user, setUser] = useState<User | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedVibe, setSelectedVibe] = useState<Vibe | null>(null);
+  const [selectedDiet, setSelectedDiet] = useState<Diet>('No Preference');
+  const [detectedIngredients, setDetectedIngredients] = useState<Ingredient[]>([]);
+  const [possibleIngredients, setPossibleIngredients] = useState<Ingredient[]>([]);
+  const [unresolvedItems, setUnresolvedItems] = useState<UnresolvedItem[]>([]);
+  const [qualityWarnings, setQualityWarnings] = useState<string[]>([]);
+  const [editableIngredients, setEditableIngredients] = useState<string[]>([]);
+  const [newIngredient, setNewIngredient] = useState('');
+  const [recipeResults, setRecipeResults] = useState<Partial<Record<Diet, RecipeResult>>>({});
+  const [showNutritionFocus, setShowNutritionFocus] = useState(false);
+  const [isWorking, setIsWorking] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [hasTriedDetection, setHasTriedDetection] = useState(false);
+  const [detectionFeedback, setDetectionFeedback] = useState<string | null>(null);
+  const [showVibeInfo, setShowVibeInfo] = useState(false);
+  const [showDietInfo, setShowDietInfo] = useState(false);
+
+  const hatY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const scrollYRef = useRef(0);
+  const ingredientListHeightRef = useRef(0);
+  const inputFocusedRef = useRef(false);
+  const hatSpin = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isDetecting || isGenerating) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          // Jump up + begin spin
+          Animated.parallel([
+            Animated.timing(hatY, { toValue: 1, duration: 380, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
+            Animated.timing(hatSpin, { toValue: 1, duration: 380, useNativeDriver: true, easing: Easing.linear }),
+          ]),
+          // Drop back with bounce + finish spin
+          Animated.parallel([
+            Animated.timing(hatY, { toValue: 0, duration: 620, useNativeDriver: true, easing: Easing.out(Easing.bounce) }),
+            Animated.timing(hatSpin, { toValue: 2, duration: 620, useNativeDriver: true, easing: Easing.linear }),
+          ]),
+          Animated.delay(750),
+          // Reset spin counter silently so it doesn't accumulate
+          Animated.timing(hatSpin, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ]),
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      hatY.setValue(0);
+      hatSpin.setValue(0);
+    }
+  }, [isDetecting, isGenerating, hatY, hatSpin]);
+
+  useEffect(() => {
+    if (isDetecting || isGenerating) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+    }
+  }, [isDetecting, isGenerating]);
+
+  const hatTranslateY = hatY.interpolate({ inputRange: [0, 1], outputRange: [0, -30] });
+  const hatRotate = hatSpin.interpolate({ inputRange: [0, 2], outputRange: ['0deg', '720deg'] });
+
+  useEffect(() => {
+    AsyncStorage.getItem(FAVORITES_KEY).then((stored) => {
+      if (stored) { try { setFavoriteIds(new Set(JSON.parse(stored) as string[])); } catch {} }
+    });
+  }, []);
+
+  const toggleFavorite = (id: string, recipe?: RecipeResult, diet?: Diet) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      const adding = !next.has(id);
+      if (adding) { next.add(id); } else { next.delete(id); }
+      AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+      if (recipe && diet) {
+        const dc = DIET_DETAILS[diet];
+        AsyncStorage.getItem(SAVED_RECIPES_DATA_KEY).then(raw => {
+          const data: Record<string, object> = raw ? JSON.parse(raw) : {};
+          if (adding) {
+            data[id] = {
+              id, title: recipe.title, description: recipe.description,
+              cuisine: recipe.cuisine,
+              ingredients: recipe.ingredients, steps: recipe.steps,
+              timeMinutes: recipe.timeMinutes, nutrition: recipe.nutrition,
+              bg: dc.bg, accent: dc.accent,
+              createdAt: new Date().toISOString(),
+            };
+          } else {
+            delete data[id];
+          }
+          AsyncStorage.setItem(SAVED_RECIPES_DATA_KEY, JSON.stringify(data));
+        });
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ?? null);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof capturedImageUri !== 'string' || typeof capturedAt !== 'string') {
+      return;
+    }
+
+    setSelectedImageUri(capturedImageUri);
+    setDetectedIngredients([]);
+    setPossibleIngredients([]);
+    setUnresolvedItems([]);
+    setQualityWarnings([]);
+    setEditableIngredients([]);
+    setNewIngredient('');
+    setHasTriedDetection(false);
+    setDetectionFeedback(null);
+    setRecipeResults({});
+    setShowNutritionFocus(false);
+    // Auto-detect as soon as the camera hands back an image
+    handleDetectIngredients(capturedImageUri);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capturedAt, capturedImageUri]);
+
+  const resetRecipe = () => {
+    setRecipeResults({});
+    setShowNutritionFocus(false);
+  };
+
+  const resetIngredientFlow = () => {
+    setDetectedIngredients([]);
+    setPossibleIngredients([]);
+    setUnresolvedItems([]);
+    setQualityWarnings([]);
+    setEditableIngredients([]);
+    setNewIngredient('');
+    setHasTriedDetection(false);
+    setDetectionFeedback(null);
+    resetRecipe();
+  };
+
+  const resetAppState = () => {
+    setSelectedImageUri(null);
+    resetIngredientFlow();
+  };
+
+  const showTryAgainAlert = (title: string, message: string, onRetry?: () => void) => {
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      ...(onRetry ? [{ text: 'Try Again', onPress: onRetry }] : []),
+    ]);
+  };
+
+  const handleVibePress = (vibe: Vibe) => {
+    if (selectedVibe === vibe) {
+      setSelectedVibe(null);
+      resetIngredientFlow();
+      return;
+    }
+    setSelectedVibe(vibe);
+    // If ingredients already exist (scanned or typed), keep them — just regenerate recipe
+    if (hasTriedDetection || editableIngredients.length > 0) {
+      resetRecipe();
+    } else {
+      resetIngredientFlow();
+      if (selectedImageUri) {
+        handleDetectIngredients(selectedImageUri, vibe, selectedDiet);
+      }
+    }
+  };
+
+  const handleDietPress = (diet: Diet) => {
+    setSelectedDiet(diet);
+  };
+
+  const handleUploadPhoto = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert(
+        'Photo access needed',
+        'Please allow photo access so you can choose grocery images.',
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 0.95,
+      selectionLimit: 1,
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    const imageUri = result.assets[0].uri;
+    setSelectedImageUri(imageUri);
+    resetIngredientFlow();
+    handleDetectIngredients(imageUri);
+  };
+
+  const handleTakePhoto = async () => {
+    if (!selectedVibe) {
+      Alert.alert(
+        'Choose a vibe first',
+        'Pick a vibe before opening the smart camera so live ingredient preview can help you.',
+      );
+      return;
+    }
+
+    const cameraRoute = {
+      pathname: '/camera',
+      params: { goal: selectedVibe },
+    } as unknown as Href;
+
+    router.push(cameraRoute);
+  };
+
+  const handleDetectIngredients = async (autoUri?: string, vibeOverride?: Vibe, dietOverride?: Diet) => {
+    const uri = autoUri ?? selectedImageUri;
+    const vibe = vibeOverride ?? selectedVibe;
+    const diet = dietOverride ?? selectedDiet;
+
+    if (!uri) return;
+
+    if (!vibe) {
+      setDetectionFeedback('Pick a vibe above to personalise your results.');
+      return;
+    }
+
+    setIsWorking(true);
+    setIsDetecting(true);
+    setDetectedIngredients([]);
+    setPossibleIngredients([]);
+    setUnresolvedItems([]);
+    setQualityWarnings([]);
+    setEditableIngredients([]);
+    setNewIngredient('');
+    setHasTriedDetection(true);
+    setDetectionFeedback(null);
+    resetRecipe();
+
+    try {
+      const imageDataUrl = await localImageToDataUrl(uri);
+      const headers = await getFunctionHeaders();
+
+      const response = await fetch(DETECT_INGREDIENTS_FUNCTION_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          imageUri: imageDataUrl,
+          goal: `${vibe}${diet !== 'No Preference' ? ` (${diet})` : ''}`,
+          mode: 'detect',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await readErrorBody(response);
+        console.log('Ingredient detection backend error:', errorBody);
+        throw new Error(getBackendErrorMessage(errorBody));
+      }
+
+      const data = await response.json();
+
+      if (!isDetectionResult(data)) {
+        throw new Error('Invalid detection response');
+      }
+
+      const confirmed = data.confirmedIngredients;
+      const possible = data.possibleIngredients;
+      const likelyPossible = possible.filter(
+        (ingredient) => ingredient.confidence >= AUTO_ADD_POSSIBLE_CONFIDENCE,
+      );
+
+      if (confirmed.length === 0 && possible.length === 0) {
+        setUnresolvedItems(data.unresolvedItems);
+        setQualityWarnings(data.qualityWarnings);
+        setDetectionFeedback(
+          'I could not confidently identify enough items from that photo. You can retake it or add ingredients manually below.',
+        );
+        return;
+      }
+
+      setDetectedIngredients(confirmed);
+      setPossibleIngredients(possible);
+      setUnresolvedItems(data.unresolvedItems);
+      setQualityWarnings(data.qualityWarnings);
+      setEditableIngredients(mergeIngredientNames([...confirmed, ...likelyPossible]));
+      setDetectionFeedback(
+        confirmed.length + likelyPossible.length < 3
+          ? 'I found a few matches. Check the possible items and unresolved packaged foods below to fill gaps.'
+          : likelyPossible.length > 0
+            ? 'I added strong and likely matches. Quickly remove anything that looks wrong before generating a meal.'
+            : null,
+      );
+    } catch (error) {
+      console.log('Ingredient detection failed:', error);
+      setDetectionFeedback(getDetectionFailureMessage(error));
+    } finally {
+      setIsWorking(false);
+      setIsDetecting(false);
+    }
+  };
+
+  const handleRemoveIngredient = (ingredientToRemove: string) => {
+    setEditableIngredients((currentIngredients) =>
+      currentIngredients.filter((ingredient) => ingredient !== ingredientToRemove),
+    );
+    resetRecipe();
+  };
+
+  const handleAddIngredient = () => {
+    const trimmedIngredient = newIngredient.trim();
+
+    if (!trimmedIngredient) {
+      Alert.alert('Ingredient missing', 'Type an ingredient before adding it.');
+      return;
+    }
+
+    const alreadyExists = editableIngredients.some(
+      (ingredient) => ingredient.toLowerCase() === trimmedIngredient.toLowerCase(),
+    );
+
+    if (alreadyExists) {
+      Alert.alert('Already added', 'That ingredient is already in your list.');
+      return;
+    }
+
+    setEditableIngredients((currentIngredients) => [...currentIngredients, toTitleCase(trimmedIngredient)]);
+    setNewIngredient('');
+    resetRecipe();
+  };
+
+  const handleAddSuggestedIngredient = (ingredientToAdd: Ingredient) => {
+    const alreadyExists = editableIngredients.some(
+      (ingredient) => ingredient.toLowerCase() === ingredientToAdd.name.toLowerCase(),
+    );
+
+    if (alreadyExists) {
+      return;
+    }
+
+    setEditableIngredients((currentIngredients) => [...currentIngredients, toTitleCase(ingredientToAdd.name)]);
+    resetRecipe();
+  };
+
+  const handleGenerateFinalMeal = async () => {
+    if (!selectedVibe) {
+      Alert.alert('Vibe required', 'Please pick a vibe before generating a recipe.');
+      return;
+    }
+
+    if (editableIngredients.length === 0) {
+      Alert.alert('Ingredients required', 'Please keep or add at least one ingredient.');
+      return;
+    }
+
+    setIsWorking(true);
+    setIsGenerating(true);
+    setRecipeResults({});
+    setShowNutritionFocus(false);
+
+    try {
+      const [rawBasket, rawStaples, rawProfile, rawShoppingList, headers] = await Promise.all([
+        AsyncStorage.getItem(PANTRY_BASKET_KEY),
+        AsyncStorage.getItem(PANTRY_STAPLES_KEY),
+        AsyncStorage.getItem(USER_PROFILE_KEY),
+        AsyncStorage.getItem(SHOPPING_LIST_KEY),
+        getFunctionHeaders(),
+      ]);
+
+      const pantryBasket: string[] = rawBasket ? JSON.parse(rawBasket) : [];
+      const pantryStaples: string[] = rawStaples ? JSON.parse(rawStaples) : [];
+      const allPantryItems = [...pantryBasket, ...pantryStaples];
+      const pantryContext = allPantryItems.length > 0
+        ? ` Pantry also has: ${allPantryItems.join(', ')}.`
+        : '';
+
+      const userProfile: UserProfile | null = rawProfile ? JSON.parse(rawProfile) : null;
+      const profileContext = userProfile?.onboardingComplete
+        ? ` User profile: ${buildProfilePrompt(userProfile)}.`
+        : '';
+
+      type RawShoppingItem = { name: string; bought: boolean };
+      const shoppingList: RawShoppingItem[] = rawShoppingList ? JSON.parse(rawShoppingList) : [];
+      const toBuyNames = shoppingList.filter((i) => !i.bought).map((i) => i.name);
+      const shoppingContext = toBuyNames.length > 0
+        ? ` User is also planning to buy: ${toBuyNames.join(', ')}.`
+        : '';
+
+      const generateOne = async (diet: Diet, _index: number): Promise<{ diet: Diet; recipe: RecipeResult }> => {
+        const goal = [
+          `Vibe: ${selectedVibe}.`,
+          diet !== 'No Preference' ? `Nutrition focus: ${diet}.` : '',
+          DIVERSITY_NOTE,
+          pantryContext,
+          shoppingContext,
+          profileContext,
+        ].filter(Boolean).join(' ');
+        const response = await fetch(GENERATE_FINAL_MEAL_FUNCTION_URL, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ ingredients: editableIngredients, goal }),
+        });
+        if (!response.ok) {
+          const errorBody = await readErrorBody(response);
+          throw new Error(getBackendErrorMessage(errorBody));
+        }
+        const data = await response.json();
+        if (!isRecipeResult(data)) throw new Error('Missing recipe data');
+        return { diet, recipe: data as RecipeResult };
+      };
+
+      // Stagger requests 400 ms apart so they don't all hit OpenAI simultaneously
+      const settled = await Promise.allSettled(
+        DIETS.map((diet, index) =>
+          new Promise<{ diet: Diet; recipe: RecipeResult }>((resolve, reject) =>
+            setTimeout(() => generateOne(diet, index).then(resolve, reject), index * 400)
+          )
+        ),
+      );
+
+      const results: Partial<Record<Diet, RecipeResult>> = {};
+      const failedDiets: Array<{ diet: Diet }> = [];
+
+      for (const [i, result] of settled.entries()) {
+        if (result.status === 'fulfilled') {
+          results[result.value.diet] = result.value.recipe;
+        } else {
+          failedDiets.push({ diet: DIETS[i] });
+        }
+      }
+
+      // Retry failed diets sequentially with a 1 s gap each
+      for (const { diet } of failedDiets) {
+        try {
+          await new Promise(r => setTimeout(r, 1000));
+          const { recipe } = await generateOne(diet, 0);
+          results[diet] = recipe;
+        } catch {
+          // Leave that diet blank — fallback message shown in UI
+        }
+      }
+
+      if (Object.keys(results).length === 0) {
+        throw new Error('All meal generations failed');
+      }
+
+      setRecipeResults(results);
+      setSelectedDiet(DIETS.find(d => results[d]) ?? 'No Preference');
+      setShowNutritionFocus(true);
+    } catch (error) {
+      console.log('Final meal generation failed:', error);
+      showTryAgainAlert(
+        'Could not generate recipe',
+        getRecipeFailureMessage(error),
+        handleGenerateFinalMeal,
+      );
+    } finally {
+      setIsWorking(false);
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveRecipe = async () => {
+    const currentRecipe = recipeResults[selectedDiet];
+    if (!currentRecipe || !user || !supabase) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('recipes').insert({
+        user_id: user.id,
+        title: currentRecipe.title,
+        description: currentRecipe.description,
+        ingredients: currentRecipe.ingredients,
+        steps: currentRecipe.steps,
+        time_minutes: currentRecipe.timeMinutes,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      Alert.alert('Recipe saved', 'Your recipe is now available in the Saved tab.');
+    } catch (error) {
+      console.log('Failed to save recipe:', error);
+      showTryAgainAlert(
+        'Could not save recipe',
+        'Please try saving again.',
+        handleSaveRecipe,
+      );
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <StatusBar style="light" backgroundColor={INK} />
+      <View style={[styles.hero, { paddingTop: TOP_INSET + 22 }]}>
+        <Text style={styles.eyebrow}>So Chef...</Text>
+        <Text style={styles.title}>What's in the kitchen?</Text>
+      </View>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}>
+        <View style={styles.content}>
+          <View style={styles.vibeSectionHeader}>
+            <Ionicons name="color-palette-outline" size={14} color={BRAND_ORANGE} />
+            <Text style={styles.sectionTitle}>Pick a Vibe</Text>
+            <View style={styles.sectionDividerLine} />
+            <TouchableOpacity onPress={() => setShowVibeInfo(true)} style={styles.infoIconButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="information-circle-outline" size={18} color={MUTED} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.vibeRow}>
+            {VIBES.map((vibe) => {
+              const isSelected = selectedVibe === vibe;
+              const details = VIBE_DETAILS[vibe];
+              return (
+                <TouchableOpacity
+                  key={vibe}
+                  style={[
+                    styles.vibeChip,
+                    {
+                      backgroundColor: isSelected ? details.accent : details.bg,
+                      borderColor: details.accent,
+                    },
+                  ]}
+                  onPress={() => handleVibePress(vibe)}
+                  activeOpacity={0.85}
+                  disabled={isWorking}>
+                  <Ionicons name={details.icon} size={17} color={isSelected ? details.bg : details.accent} />
+                  <Text style={[styles.vibeChipLabel, { color: isSelected ? details.bg : details.accent }]}>{vibe}</Text>
+                  <Text style={[styles.vibeChipTime, { color: isSelected ? details.bg : details.accent }]}>{details.eyebrow}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {!(isDetecting || hasTriedDetection || editableIngredients.length > 0) ? (
+            <>
+              <View style={styles.vibeSectionHeader}>
+                <Ionicons name="camera-outline" size={14} color={BRAND_ORANGE} />
+                <Text style={styles.sectionTitle}>Add a Photo</Text>
+                <View style={styles.sectionDividerLine} />
+              </View>
+              <View style={styles.photoActionRow}>
+                <View style={styles.photoActionButton}>
+                  <Button
+                    title="Upload Photo"
+                    onPress={handleUploadPhoto}
+                    disabled={isWorking}
+                    variant="secondary"
+                    icon="image-outline"
+                  />
+                </View>
+                <View style={styles.photoActionButton}>
+                  <Button title="Take Photo" onPress={handleTakePhoto} disabled={isWorking} icon="camera-outline" />
+                </View>
+              </View>
+
+              {selectedImageUri ? (
+                <View style={styles.previewFrame}>
+                  <Image source={{ uri: selectedImageUri }} style={styles.previewImage} />
+                  <View style={styles.previewBadge}>
+                    <Ionicons name="checkmark-circle" size={15} color={SAGE} />
+                    <Text style={styles.previewBadgeText}>Photo ready</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.redoButton}
+                    onPress={() => {
+                      setSelectedImageUri(null);
+                      resetIngredientFlow();
+                    }}
+                    activeOpacity={0.85}
+                    disabled={isWorking}>
+                    <Ionicons name="refresh-outline" size={17} color={SURFACE} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Card style={styles.placeholderBox}>
+                  <View style={styles.placeholderIcon}>
+                    <Ionicons name="camera-outline" size={30} color={BRAND_ORANGE} />
+                  </View>
+                  <Text style={styles.placeholderTitle}>No photo selected</Text>
+                  <Text style={styles.helperText}>
+                    Upload a grocery photo to start detecting ingredients.
+                  </Text>
+                  <Text style={styles.placeholderHint}>
+                    Spread items out, labels facing up, bright lighting. One photo does it.
+                  </Text>
+                </Card>
+              )}
+            </>
+          ) : null}
+
+          {isDetecting ? (
+            <View style={styles.detectingCard}>
+              {/* Row 1: A[i]Sous */}
+              <View style={styles.detectingWordmarkRow}>
+                <Text style={styles.detectingBrandText}>A</Text>
+                <View style={styles.detectingISlot}>
+                  <Animated.View style={[styles.detectingChefHat, { transform: [{ translateY: hatTranslateY }, { rotate: hatRotate }] }]}>
+                    <View style={[styles.detectingHatPuff, styles.detectingHatPuffLeft]} />
+                    <View style={[styles.detectingHatPuff, styles.detectingHatPuffCenter]} />
+                    <View style={[styles.detectingHatPuff, styles.detectingHatPuffRight]} />
+                    <View style={styles.detectingHatBand} />
+                  </Animated.View>
+                  <View style={styles.detectingIStem} />
+                </View>
+                <Text style={styles.detectingBrandText}> Sous</Text>
+              </View>
+              {/* Row 2: Chef */}
+              <Text style={[styles.detectingBrandText, styles.detectingSecondLine]}>Chef</Text>
+            </View>
+          ) : null}
+
+          {!isDetecting && detectionFeedback ? (
+            <Card style={styles.feedbackCard}>
+              <Text style={styles.feedbackTitle}>Detection Results</Text>
+              <Text style={styles.helperText}>{detectionFeedback}</Text>
+              <View style={styles.photoActionRow}>
+                <View style={styles.photoActionButton}>
+                  <Button
+                    title="Retake Photo"
+                    onPress={handleTakePhoto}
+                    disabled={isWorking}
+                    variant="secondary"
+                    icon="camera-reverse-outline"
+                  />
+                </View>
+                <View style={styles.photoActionButton}>
+                  <Button
+                    title="Upload Another"
+                    onPress={handleUploadPhoto}
+                    disabled={isWorking}
+                    variant="secondary"
+                    icon="images-outline"
+                  />
+                </View>
+              </View>
+            </Card>
+          ) : null}
+
+          {!isDetecting && (hasTriedDetection || editableIngredients.length > 0) ? (
+            <View style={styles.resultsContainer}>
+              <View style={styles.reviewSectionHeader}>
+                <Ionicons name="checkmark-circle-outline" size={14} color={BRAND_ORANGE} />
+                <Text style={styles.sectionTitle}>Review Ingredients</Text>
+                <View style={styles.sectionDividerLine} />
+                <TouchableOpacity
+                  style={styles.retakeButton}
+                  onPress={() => {
+                    setSelectedImageUri(null);
+                    resetIngredientFlow();
+                  }}
+                  activeOpacity={0.85}
+                  disabled={isWorking}>
+                  <Ionicons name="refresh-outline" size={13} color={BRAND_ORANGE} />
+                  <Text style={styles.retakeButtonText}>Retake Photo</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Card>
+                <View
+                  style={styles.reviewIngredientsContainer}
+                  onLayout={(e) => {
+                    const newHeight = e.nativeEvent.layout.height;
+                    if (inputFocusedRef.current && newHeight > ingredientListHeightRef.current && ingredientListHeightRef.current > 0) {
+                      const delta = newHeight - ingredientListHeightRef.current;
+                      scrollRef.current?.scrollTo({ y: scrollYRef.current + delta, animated: true });
+                    }
+                    ingredientListHeightRef.current = newHeight;
+                  }}>
+                  {editableIngredients.length > 0 ? (
+                    editableIngredients.map((ingredient) => (
+                      <View key={ingredient} style={styles.reviewIngredientChip}>
+                        <Text style={styles.reviewIngredientName}>{toTitleCase(ingredient)}</Text>
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => handleRemoveIngredient(ingredient)}
+                          activeOpacity={0.85}
+                          disabled={isWorking}>
+                          <Ionicons name="close" size={8} color={SURFACE} />
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyText}>
+                      No ingredients confirmed yet. Add what you can see, or retake the photo for a
+                      cleaner shot.
+                    </Text>
+                  )}
+                </View>
+              </Card>
+
+              {possibleIngredients.length > 0 ? (
+                <Card style={styles.suggestionCard}>
+                  <Text style={styles.feedbackTitle}>Possible Items to Check</Text>
+                  <Text style={styles.helperText}>
+                    Selected ones are already in your review list. Tap any others that belong in
+                    the recipe, or remove wrong items above.
+                  </Text>
+                  <View style={styles.suggestionWrap}>
+                    {possibleIngredients.map((ingredient) => {
+                      const isAdded = editableIngredients.some(
+                        (item) => item.toLowerCase() === ingredient.name.toLowerCase(),
+                      );
+
+                      return (
+                        <TouchableOpacity
+                          key={`possible-${ingredient.name}`}
+                          style={[styles.suggestionChip, isAdded && styles.suggestionChipSelected]}
+                          onPress={() => handleAddSuggestedIngredient(ingredient)}
+                          activeOpacity={0.85}
+                          disabled={isWorking || isAdded}>
+                          <Text style={styles.suggestionChipText}>{toTitleCase(ingredient.name)}</Text>
+                          <View style={styles.chipMetaRow}>
+                            {isAdded ? <Ionicons name="checkmark" size={13} color={SAGE} /> : null}
+                            <Text style={styles.suggestionChipMeta}>
+                              {formatConfidence(ingredient.confidence)}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </Card>
+              ) : null}
+
+
+              <View style={styles.addIngredientBar}>
+                <TextInput
+                  style={styles.addIngredientInput}
+                  placeholder="Add ingredient"
+                  placeholderTextColor={MUTED}
+                  value={newIngredient}
+                  onChangeText={setNewIngredient}
+                  editable={!isWorking}
+                  onFocus={() => {
+                    inputFocusedRef.current = true;
+                    scrollRef.current?.scrollTo({ y: scrollYRef.current + 165, animated: true });
+                  }}
+                  onBlur={() => { inputFocusedRef.current = false; }}
+                />
+                <TouchableOpacity
+                  style={styles.addIngredientBtn}
+                  onPress={handleAddIngredient}
+                  activeOpacity={0.85}
+                  disabled={isWorking}>
+                  <Ionicons name="add" size={14} color={SURFACE} />
+                </TouchableOpacity>
+              </View>
+
+              {isGenerating ? (
+                <View style={styles.detectingCard}>
+                  <View style={styles.detectingWordmarkRow}>
+                    <Text style={styles.detectingBrandText}>A</Text>
+                    <View style={styles.detectingISlot}>
+                      <Animated.View style={[styles.detectingChefHat, { transform: [{ translateY: hatTranslateY }, { rotate: hatRotate }] }]}>
+                        <View style={[styles.detectingHatPuff, styles.detectingHatPuffLeft]} />
+                        <View style={[styles.detectingHatPuff, styles.detectingHatPuffCenter]} />
+                        <View style={[styles.detectingHatPuff, styles.detectingHatPuffRight]} />
+                        <View style={styles.detectingHatBand} />
+                      </Animated.View>
+                      <View style={styles.detectingIStem} />
+                    </View>
+                    <Text style={styles.detectingBrandText}> Sous</Text>
+                  </View>
+                  <Text style={[styles.detectingBrandText, styles.detectingSecondLine]}>Chef</Text>
+                </View>
+              ) : (
+                <Button
+                  title="Generate Final Meal"
+                  onPress={handleGenerateFinalMeal}
+                  disabled={isWorking}
+                  icon="flame-outline"
+                />
+              )}
+            </View>
+          ) : null}
+
+          {showNutritionFocus ? (
+            <View style={styles.dietSection}>
+              <View style={styles.vibeSectionHeader}>
+                <Ionicons name="pulse-outline" size={14} color={BRAND_ORANGE} />
+                <Text style={styles.sectionTitle}>Nutrition Focus</Text>
+                <View style={styles.sectionDividerLine} />
+                <TouchableOpacity onPress={() => setShowDietInfo(true)} style={styles.infoIconButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="information-circle-outline" size={18} color={MUTED} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.vibeRow}>
+                {DIETS.map((diet) => {
+                  const isSelected = selectedDiet === diet;
+                  const details = DIET_DETAILS[diet];
+                  return (
+                    <TouchableOpacity
+                      key={diet}
+                      style={[
+                        styles.vibeChip,
+                        { backgroundColor: isSelected ? details.accent : details.bg, borderColor: details.accent },
+                      ]}
+                      onPress={() => handleDietPress(diet)}
+                      activeOpacity={0.85}>
+                      <Ionicons name={details.icon} size={17} color={isSelected ? details.bg : details.accent} />
+                      <Text style={[styles.vibeChipLabel, { color: isSelected ? details.bg : details.accent }]} numberOfLines={2}>{diet}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {recipeResults[selectedDiet] && user ? (
+            <View style={styles.resultsContainer}>
+              <Button
+                title="Save Recipe"
+                onPress={handleSaveRecipe}
+                variant="success"
+                disabled={isWorking}
+                icon="bookmark-outline"
+              />
+            </View>
+          ) : null}
+
+          {showNutritionFocus && !recipeResults[selectedDiet] ? (
+            <View style={styles.resultsContainer}>
+              <View style={[styles.card, { alignItems: 'center', paddingVertical: 24 }]}>
+                <Text style={{ color: MUTED, fontSize: 13, textAlign: 'center' }}>
+                  No recipe generated for this focus. Select another option above.
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          {recipeResults[selectedDiet] ? (
+            <View style={styles.resultsContainer}>
+              <RecipeCard
+                recipe={recipeResults[selectedDiet]!}
+                vibe={selectedVibe}
+                diet={selectedDiet}
+                isFav={favoriteIds.has(recipeResults[selectedDiet]!.title)}
+                onToggleFav={() => toggleFavorite(recipeResults[selectedDiet]!.title, recipeResults[selectedDiet]!, selectedDiet)}
+              />
+            </View>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      <Modal
+        visible={showDietInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDietInfo(false)}>
+        <TouchableOpacity style={styles.vibeInfoOverlay} activeOpacity={1} onPress={() => setShowDietInfo(false)}>
+          <View style={styles.vibeInfoPanel}>
+            <Text style={styles.vibeInfoTitle}>Nutrition Focus</Text>
+            {DIETS.map((diet) => {
+              const details = DIET_DETAILS[diet];
+              return (
+                <View key={diet} style={styles.vibeInfoRow}>
+                  <View style={[styles.vibeInfoIconWrap, { backgroundColor: `${details.accent}22` }]}>
+                    <Ionicons name={details.icon} size={16} color={details.accent} />
+                  </View>
+                  <View style={styles.vibeInfoText}>
+                    <Text style={[styles.vibeInfoName, { color: details.accent }]}>{diet}</Text>
+                    <Text style={styles.vibeInfoDesc}>{details.description}</Text>
+                  </View>
+                </View>
+              );
+            })}
+            <TouchableOpacity onPress={() => setShowDietInfo(false)} style={styles.vibeInfoClose}>
+              <Text style={styles.vibeInfoCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={showVibeInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowVibeInfo(false)}>
+        <TouchableOpacity style={styles.vibeInfoOverlay} activeOpacity={1} onPress={() => setShowVibeInfo(false)}>
+          <View style={styles.vibeInfoPanel}>
+            <Text style={styles.vibeInfoTitle}>Cooking Vibes</Text>
+            {VIBES.map((vibe) => {
+              const details = VIBE_DETAILS[vibe];
+              return (
+                <View key={vibe} style={styles.vibeInfoRow}>
+                  <View style={[styles.vibeInfoIconWrap, { backgroundColor: `${details.accent}22` }]}>
+                    <Ionicons name={details.icon} size={16} color={details.accent} />
+                  </View>
+                  <View style={styles.vibeInfoText}>
+                    <Text style={[styles.vibeInfoName, { color: details.accent }]}>{vibe} · {details.eyebrow}</Text>
+                    <Text style={styles.vibeInfoDesc}>{details.description}</Text>
+                  </View>
+                </View>
+              );
+            })}
+            <TouchableOpacity onPress={() => setShowVibeInfo(false)} style={styles.vibeInfoClose}>
+              <Text style={styles.vibeInfoCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      </SafeAreaView>
+    </KeyboardAvoidingView>
+  );
+}
+
