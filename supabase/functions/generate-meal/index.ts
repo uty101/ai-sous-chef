@@ -246,3 +246,57 @@ function normalizeDetectionResponse(value: unknown): DetectionResponse | null {
   };
 }
 
+function getDetectionSchema() {
+  const ingredientSchema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      confidence: { type: 'number' },
+      source: {
+        type: 'string',
+        enum: ['vision', 'label', 'mixed'],
+      },
+    },
+    required: ['name', 'confidence', 'source'],
+    additionalProperties: false,
+  };
+
+  return {
+    confirmedIngredients: {
+      type: 'array',
+      items: ingredientSchema,
+    },
+    possibleIngredients: {
+      type: 'array',
+      items: ingredientSchema,
+    },
+    unresolvedItems: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          labelHint: { type: 'string' },
+          reason: { type: 'string' },
+        },
+        required: ['labelHint', 'reason'],
+        additionalProperties: false,
+      },
+    },
+    qualityWarnings: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+  };
+}
+
+function getResponseSchema(_mode: DetectionMode) {
+  const detectionProperties = getDetectionSchema();
+
+  return {
+    type: 'object',
+    properties: detectionProperties,
+    required: ['confirmedIngredients', 'possibleIngredients', 'unresolvedItems', 'qualityWarnings'],
+    additionalProperties: false,
+  };
+}
+
