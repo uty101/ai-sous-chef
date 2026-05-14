@@ -373,3 +373,74 @@ function getRecipeFailureMessage(error: unknown) {
   return 'Please try again in a moment.';
 }
 
+function getImageSize(uri: string) {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    Image.getSize(
+      uri,
+      (width, height) => resolve({ width, height }),
+      (error) => reject(error),
+    );
+  });
+}
+
+async function localImageToDataUrl(localImageUri: string) {
+  const { width, height } = await getImageSize(localImageUri);
+  const longestEdge = Math.max(width, height);
+  const resizeAction =
+    longestEdge > FINAL_SCAN_MAX_EDGE
+      ? [
+          width >= height
+            ? { resize: { width: FINAL_SCAN_MAX_EDGE } }
+            : { resize: { height: FINAL_SCAN_MAX_EDGE } },
+        ]
+      : [];
+
+  const normalizedImage = await ImageManipulator.manipulateAsync(localImageUri, resizeAction, {
+    base64: true,
+    compress: 0.9,
+    format: ImageManipulator.SaveFormat.JPEG,
+  });
+
+  if (!normalizedImage.base64) {
+    throw new Error('Image could not be converted for detection');
+  }
+
+  const estimatedBytes = Math.ceil((normalizedImage.base64.length * 3) / 4);
+
+  if (estimatedBytes > MAX_DIRECT_IMAGE_BYTES) {
+    throw new Error('Image is too large for direct detection');
+  }
+
+  return `data:image/jpeg;base64,${normalizedImage.base64}`;
+}
+
+async function getFunctionHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    apikey: SUPABASE_ANON_KEY,
+  };
+}
+
+function formatConfidence(confidence: number) {
+  return `${Math.round(Math.max(0, Math.min(confidence, 1)) * 100)}%`;
+}
+
+function toTitleCase(str: string) {
+  return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function mergeIngredientNames(ingredients: Ingredient[]) {
+  const names = new Map<string, string>();
+
+  for (const ingredient of ingredients) {
+    const normalizedName = ingredient.name.trim().toLowerCase();
+
+    if (normalizedName && !names.has(normalizedName)) {
+      names.set(normalizedName, ingredient.name.trim());
+    }
+  }
+
+  return Array.from(names.values());
+}
+
