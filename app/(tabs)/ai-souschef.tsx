@@ -166,3 +166,58 @@ const DIET_DETAILS: Record<Diet, {
   'Comfort Food': { icon: 'cafe-outline', accent: '#D4900A', bg: '#FFF3D0', description: 'Hearty, indulgent dishes that hit the spot.' },
 };
 
+// Small reusable UI building blocks keep the screen easier to read.
+function Button({
+  title,
+  onPress,
+  disabled = false,
+  loading = false,
+  variant = 'primary',
+  icon,
+  textPill = false,
+}: ButtonProps) {
+  const isSecondary = variant === 'secondary';
+  const contentColor = isSecondary ? BRAND_ORANGE : SURFACE;
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.buttonBase,
+        variant === 'primary' && styles.buttonPrimary,
+        variant === 'secondary' && styles.buttonSecondary,
+        variant === 'success' && styles.buttonSuccess,
+        disabled && styles.buttonDisabled,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      disabled={disabled}>
+      {loading ? (
+        <ActivityIndicator color={contentColor} size="small" />
+      ) : (
+        <View style={styles.buttonContent}>
+          {icon ? <Ionicons name={icon} size={18} color={contentColor} /> : null}
+          {textPill ? (
+            <View style={styles.buttonTextPill}>
+              <Text style={[styles.buttonText, isSecondary && styles.buttonTextSecondary]} numberOfLines={1} adjustsFontSizeToFit>
+                {title}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.buttonText, isSecondary && styles.buttonTextSecondary]} numberOfLines={1} adjustsFontSizeToFit>
+              {title}
+            </Text>
+          )}
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.sectionTitle}>{children}</Text>;
+}
+
+function Card({ children, style }: { children: React.ReactNode; style?: object }) {
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
