@@ -138,3 +138,84 @@ async function buildDishesFromSearch(
   return parsed.dishes ?? [];
 }
 
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  try {
+    const tavilyKey   = Deno.env.get('TAVILY_API_KEY');
+    const openAIKey   = Deno.env.get('OPENAI_API_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const model       = Deno.env.get('OPENAI_FINAL_MODEL') ?? Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini';
+
+    if (!tavilyKey || !openAIKey) {
+      return jsonResponse({ error: 'Missing API keys' }, 500);
+    }
+
+    const db = createClient(supabaseUrl, serviceKey);
+    const yesterday = getYesterday();
+
+    // Return cached results if all four slots are filled
+    const { data: cached } = await db
+      .from('viral_dishes')
+      .select('*')
+      .eq('viral_date', yesterday)
+      .order('platform')
+      .order('rank');
+
+    const countByPlatform = (cached ?? []).reduce((acc: Record<string, number>, d: any) => {
+      acc[d.platform] = (acc[d.platform] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    if ((countByPlatform['tiktok'] ?? 0) >= 2 && (countByPlatform['instagram'] ?? 0) >= 2) {
+      return jsonResponse(cached);
+    }
+
+    const results = [...(cached ?? [])];
+    const platforms: Array<'tiktok' | 'instagram'> = ['tiktok', 'instagram'];
+
+    for (const platform of platforms) {
+      if ((countByPlatform[platform] ?? 0) >= 2) continue;
+
+      const query = `most viral trending food ${platform === 'tiktok' ? 'TikTok' : 'Instagram'} ${yesterday} recipe`;
+      const searchData = await searchTavily(query, tavilyKey);
+      const dishes = await buildDishesFromSearch(searchData, platform, yesterday, openAIKey, model);
+
+      for (let i = 0; i < Math.min(dishes.length, 2); i++) {
+        const dish = dishes[i];
+        const rank = i + 1;
+
+        const row = {
+          viral_date:   yesterday,
+          platform,
+          rank,
+          title:        dish.title,
+          description:  dish.description,
+          cuisine:      dish.cuisine,
+          time_minutes: dish.timeMinutes,
+          ingredients:  dish.ingredients,
+          steps:        dish.steps,
+          nutrition:    dish.nutrition,
+          views:        dish.views,
+          accent:       dish.accent,
+          bg:           dish.bg,
+        };
+
+        const { data: inserted, error } = await db
+          .from('viral_dishes')
+          .insert(row)
+          .select()
+          .single();
+
+        if (error) console.error(`Insert error for ${platform} rank ${rank}:`, error);
+        if (inserted) results.push(inserted);
+      }
+    }
+
+    return jsonResponse(results);
+  } catch (err) {
+    console.error('get-viral-dishes failed:', err);
+    return jsonResponse({ error: 'Failed to fetch viral dishes' }, 500);
+  }
+});
