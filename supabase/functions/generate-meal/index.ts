@@ -123,3 +123,126 @@ function parseJsonOutput(outputText: string) {
   }
 }
 
+function isIngredientSource(value: unknown): value is IngredientSource {
+  return value === 'vision' || value === 'label' || value === 'mixed';
+}
+
+function parseIngredient(value: unknown): Ingredient | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const item = value as Record<string, unknown>;
+
+  if (
+    typeof item.name !== 'string' ||
+    typeof item.confidence !== 'number' ||
+    !isIngredientSource(item.source) ||
+    item.confidence < 0 ||
+    item.confidence > 1
+  ) {
+    return null;
+  }
+
+  return {
+    name: item.name.trim(),
+    confidence: item.confidence,
+    source: item.source,
+  };
+}
+
+function parseIngredientArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map(parseIngredient).filter((item): item is Ingredient => item !== null && item.name.length > 0);
+}
+
+function parseUnresolvedItems(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return null;
+      }
+
+      const item = entry as Record<string, unknown>;
+
+      if (typeof item.labelHint !== 'string' || typeof item.reason !== 'string') {
+        return null;
+      }
+
+      return {
+        labelHint: item.labelHint.trim(),
+        reason: item.reason.trim(),
+      };
+    })
+    .filter(
+      (item): item is UnresolvedItem =>
+        item !== null && item.labelHint.length > 0 && item.reason.length > 0,
+    );
+}
+
+function parseQualityWarnings(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeIngredientName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^(fresh|raw|whole|packaged|a packet of|packet of|bag of|bottle of|jar of)\s+/, '');
+}
+
+function normalizeDetectionResponse(value: unknown): DetectionResponse | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const allIngredients = [
+    ...parseIngredientArray(candidate.confirmedIngredients),
+    ...parseIngredientArray(candidate.possibleIngredients),
+  ];
+  const byName = new Map<string, Ingredient>();
+
+  for (const ingredient of allIngredients) {
+    const normalizedName = normalizeIngredientName(ingredient.name);
+    const existingIngredient = byName.get(normalizedName);
+
+    if (!existingIngredient || ingredient.confidence > existingIngredient.confidence) {
+      byName.set(normalizedName, {
+        ...ingredient,
+        name: ingredient.name.trim().replace(/\s+/g, ' '),
+      });
+    }
+  }
+
+  const dedupedIngredients = Array.from(byName.values()).sort((a, b) => b.confidence - a.confidence);
+  const confirmedIngredients = dedupedIngredients.filter(
+    (ingredient) => ingredient.confidence >= AUTO_CONFIRM_CONFIDENCE,
+  );
+  const possibleIngredients = dedupedIngredients.filter(
+    (ingredient) => ingredient.confidence < AUTO_CONFIRM_CONFIDENCE,
+  );
+
+  return {
+    confirmedIngredients,
+    possibleIngredients,
+    unresolvedItems: parseUnresolvedItems(candidate.unresolvedItems),
+    qualityWarnings: parseQualityWarnings(candidate.qualityWarnings),
+  };
+}
+
