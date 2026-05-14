@@ -54,3 +54,154 @@ const DAILY_PROMPTS = [
   { icon: 'options-outline', text: "Set your taste preferences for smarter meal suggestions.", color: '#34A853', bg: '#E8F8EE', action: 'Set preferences', route: '/taste-profile' },
 ];
 
+type MealDetail = {
+  id: string;
+  title: string;
+  description: string;
+  goal?: string;
+  cuisine?: string;
+  timeMinutes: number;
+  ingredients: string[];
+  steps: string[];
+  nutrition: { calories: number; protein: number; carbs: number; fats: number };
+  accent: string;
+  bg: string;
+  createdAt?: string;
+  platform?: 'tiktok' | 'instagram';
+  views?: string;
+};
+
+const PANTRY_RECS: MealDetail[] = [
+  {
+    id: 'r1',
+    title: 'Garlic Lemon Chicken',
+    goal: 'High Protein',
+    cuisine: 'Mediterranean',
+    timeMinutes: 20,
+    description: 'Juicy chicken breast with wilted spinach in a bright garlic-lemon pan sauce.',
+    ingredients: [
+      '300g chicken breast',
+      'Handful of spinach',
+      '3 garlic cloves, minced',
+      '1 lemon, juiced and zested',
+      '1 tbsp olive oil',
+      'Salt and black pepper',
+    ],
+    steps: [
+      'Season chicken with salt and pepper on both sides.',
+      'Heat olive oil in a pan over medium-high heat. Cook chicken 6 min per side until golden.',
+      'Remove chicken to rest. Add garlic to pan, cook 1 min.',
+      'Add spinach and lemon juice. Stir until wilted.',
+      'Slice chicken and serve over spinach with pan juices drizzled over.',
+    ],
+    nutrition: { calories: 380, protein: 42, carbs: 8, fats: 18 },
+    accent: '#FF5C35',
+    bg: '#FFE8E2',
+  },
+  {
+    id: 'r2',
+    title: 'Pasta Pomodoro',
+    goal: 'Quick',
+    cuisine: 'Italian',
+    timeMinutes: 15,
+    description: 'A silky, garlicky tomato sauce tossed with pasta. Simple, fast, and deeply satisfying.',
+    ingredients: [
+      '200g spaghetti or penne',
+      '400g canned chopped tomatoes',
+      '3 garlic cloves, sliced',
+      '3 tbsp olive oil',
+      'Salt and black pepper',
+      'Fresh basil to serve',
+    ],
+    steps: [
+      'Boil salted water and cook pasta per package instructions.',
+      'Heat oil in a wide pan. Add garlic, cook 2 min until lightly golden.',
+      'Add tomatoes, season well, simmer 8 minutes until thickened.',
+      'Drain pasta (keep a cup of pasta water). Toss with sauce.',
+      'Loosen with pasta water if needed. Top with fresh basil.',
+    ],
+    nutrition: { calories: 420, protein: 14, carbs: 68, fats: 12 },
+    accent: '#FFBA35',
+    bg: '#FFF3D0',
+  },
+  {
+    id: 'r3',
+    title: 'Broccoli Rice Bowl',
+    goal: 'Healthy',
+    cuisine: 'Japanese',
+    timeMinutes: 25,
+    description: 'A wholesome bowl of fluffy rice, roasted broccoli, and a fried egg with soy and sesame.',
+    ingredients: [
+      '150g white or brown rice',
+      '200g broccoli, cut into florets',
+      '2 eggs',
+      '1 tbsp olive oil',
+      '1 tbsp soy sauce',
+      '1 tsp sesame oil',
+      'Sesame seeds to garnish',
+    ],
+    steps: [
+      'Cook rice per package instructions.',
+      'Toss broccoli with olive oil and roast at 200°C for 15 min until crispy at the edges.',
+      'Fry eggs to your liking in a little butter.',
+      'Assemble: rice base, roasted broccoli, egg on top.',
+      'Drizzle with soy sauce and sesame oil. Scatter sesame seeds.',
+    ],
+    nutrition: { calories: 310, protein: 16, carbs: 52, fats: 7 },
+    accent: '#34A853',
+    bg: '#E8F8EE',
+  },
+  {
+    id: 'r4',
+    title: 'Protein Egg Scramble',
+    goal: 'High Protein',
+    cuisine: 'American',
+    timeMinutes: 10,
+    description: 'Creamy, fluffy eggs scrambled with fresh spinach and melted cheddar. The fastest protein hit.',
+    ingredients: [
+      '3 large eggs',
+      'Handful of fresh spinach',
+      '30g cheddar, grated',
+      '1 tsp butter',
+      'Salt and black pepper',
+    ],
+    steps: [
+      'Whisk eggs with a pinch of salt and pepper.',
+      'Melt butter in a non-stick pan over low heat.',
+      'Pour in eggs and gently fold slowly as they cook.',
+      'Just before set, add spinach and cheddar. Fold in.',
+      'Remove from heat while slightly soft. Residual heat finishes them. Serve immediately.',
+    ],
+    nutrition: { calories: 290, protein: 26, carbs: 4, fats: 18 },
+    accent: '#FF5C35',
+    bg: '#FFE8E2',
+  },
+  {
+    id: 'r5',
+    title: 'Black Bean Rice Bowl',
+    goal: 'Healthy',
+    cuisine: 'Mexican',
+    timeMinutes: 20,
+    description: 'A hearty plant-based bowl of seasoned black beans over fluffy rice with caramelised onion.',
+    ingredients: [
+      '150g rice',
+      '1 can (400g) black beans, drained',
+      '1 onion, diced',
+      '2 garlic cloves, minced',
+      '1 tsp ground cumin',
+      '1 tbsp olive oil',
+      'Salt and pepper to taste',
+    ],
+    steps: [
+      'Cook rice per package instructions.',
+      'Heat oil in a pan. Fry onion 5 min until soft and golden.',
+      'Add garlic and cumin. Cook 1 min until fragrant.',
+      'Add black beans, season, and simmer 5 min until warmed through.',
+      'Serve beans and sauce over rice.',
+    ],
+    nutrition: { calories: 380, protein: 18, carbs: 58, fats: 8 },
+    accent: '#3B82F6',
+    bg: '#EBF3FF',
+  },
+];
+
