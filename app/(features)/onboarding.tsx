@@ -690,3 +690,312 @@ function TogglePill({
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: CREAM,
+  },
+
+  // Progress
+  progressBar: {
+    height: 3,
+    backgroundColor: BORDER,
+    marginHorizontal: 24,
+    marginTop: 8,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: ACCENT,
+    borderRadius: 2,
+  },
+
+  // Step shell
+  stepContainer: {
+    flex: 1,
+  },
+  stepScroll: {
+    flex: 1,
+  },
+  stepScrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 20,
+  },
+  stepTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: PRIMARY,
+    lineHeight: 30,
+    marginBottom: 8,
+  },
+  stepSubtitle: {
+    fontSize: 15,
+    color: MUTED,
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  stepBody: {
+    gap: 10,
+  },
+
+  // Nav
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    backgroundColor: CREAM,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: CARD_BG,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  nextBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    backgroundColor: ACCENT,
+    borderRadius: 26,
+  },
+  nextBtnDisabled: {
+    opacity: 0.4,
+  },
+  nextBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: PRIMARY,
+  },
+
+  // Welcome / Done
+  welcomeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    gap: 16,
+  },
+  welcomeIconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#FFF3D0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  welcomeTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: PRIMARY,
+    textAlign: 'center',
+    lineHeight: 32,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  welcomeMeta: {
+    fontSize: 13,
+    color: MUTED,
+    textAlign: 'center',
+  },
+  welcomeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 15,
+    backgroundColor: ACCENT,
+    borderRadius: 30,
+  },
+  welcomeBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: PRIMARY,
+  },
+
+  // SelectCard
+  selectCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+  },
+  selectCardActive: {
+    borderColor: ACCENT,
+    backgroundColor: '#FFFBF0',
+  },
+  selectCardLeft: {
+    flex: 1,
+    gap: 3,
+  },
+  selectCardLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: PRIMARY,
+  },
+  selectCardLabelActive: {
+    color: PRIMARY,
+  },
+  selectCardDesc: {
+    fontSize: 13,
+    color: MUTED,
+    lineHeight: 18,
+  },
+  selectCardDescActive: {
+    color: '#6B6040',
+  },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  radioOuterActive: {
+    borderColor: ACCENT,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: ACCENT,
+  },
+
+  // TogglePill
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    backgroundColor: CARD_BG,
+  },
+  pillActive: {
+    borderColor: ACCENT,
+    backgroundColor: '#FFFBF0',
+  },
+  pillText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: MUTED,
+  },
+  pillTextActive: {
+    color: PRIMARY,
+    fontWeight: '600',
+  },
+
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: BORDER,
+    marginVertical: 12,
+  },
+
+  // Tags / free text
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: PRIMARY,
+    marginBottom: 8,
+  },
+  tagInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CARD_BG,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  tagInput: {
+    flex: 1,
+    fontSize: 14,
+    color: PRIMARY,
+  },
+  tagAddBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagCloud: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: '#F0F0F0',
+  },
+  tagText: {
+    fontSize: 13,
+    color: PRIMARY,
+    fontWeight: '500',
+  },
+
+  // Household checkbox
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    backgroundColor: CARD_BG,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
+  },
+  checkLabel: {
+    fontSize: 15,
+    color: PRIMARY,
+    fontWeight: '500',
+  },
+});
