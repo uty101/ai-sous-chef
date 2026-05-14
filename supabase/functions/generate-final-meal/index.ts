@@ -33,3 +33,51 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function extractOutputText(openAIResponse: any) {
+  const messageItem = openAIResponse?.output?.find((item: any) => item.type === 'message');
+  const outputTextItem = messageItem?.content?.find((item: any) => item.type === 'output_text');
+  return outputTextItem?.text ?? null;
+}
+
+function getSafeOpenAIError(errorText: string) {
+  try {
+    const parsed = JSON.parse(errorText) as {
+      error?: { message?: string; type?: string; code?: string };
+    };
+
+    return {
+      message: parsed.error?.message?.slice(0, 500) ?? 'OpenAI request failed',
+      type: parsed.error?.type ?? 'unknown',
+      code: parsed.error?.code ?? 'unknown',
+    };
+  } catch {
+    return {
+      message: errorText.slice(0, 500),
+      type: 'unknown',
+      code: 'unknown',
+    };
+  }
+}
+
+function isValidRecipeResponse(value: unknown): value is RecipeResponse {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    typeof candidate.title === 'string' &&
+    typeof candidate.description === 'string' &&
+    typeof candidate.cuisine === 'string' &&
+    Array.isArray(candidate.ingredients) &&
+    candidate.ingredients.every((item) => typeof item === 'string') &&
+    Array.isArray(candidate.steps) &&
+    candidate.steps.every((item) => typeof item === 'string') &&
+    typeof candidate.timeMinutes === 'number' &&
+    candidate.nutrition !== null &&
+    typeof candidate.nutrition === 'object' &&
+    typeof (candidate.nutrition as any).calories === 'number'
+  );
+}
+
