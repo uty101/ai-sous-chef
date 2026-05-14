@@ -82,3 +82,59 @@ function getToneColor(tone: InspirationCard['tone']) {
   return BRAND_ORANGE;
 }
 
+export default function DiscoverScreen() {
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          <View style={styles.hero}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroCopy}>
+                <Text style={styles.eyebrow}>Inspiration</Text>
+                <Text style={styles.title}>Discover</Text>
+              </View>
+              <View style={styles.heroIcon}>
+                <Ionicons name="sparkles-outline" size={28} color={BRAND_ORANGE} />
+              </View>
+            </View>
+            <Text style={styles.subtitle}>
+              Seasonal-feeling ideas, useful tools, and the pages that make AI Sous Chef feel personal.
+            </Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>Explore Ideas</Text>
+
+          <View style={styles.cardStack}>
+            {inspirationCards.map((card) => {
+              const toneColor = getToneColor(card.tone);
+
+              return (
+                <TouchableOpacity
+                  key={card.title}
+                  style={styles.card}
+                  onPress={() => router.push(card.route)}
+                  activeOpacity={0.85}>
+                  <View style={[styles.itemIcon, { backgroundColor: `${toneColor}1A` }]}>
+                    <Ionicons name={card.icon} size={21} color={toneColor} />
+                  </View>
+                  <View style={styles.itemCopy}>
+                    <View style={styles.itemTitleRow}>
+                      <Text style={styles.itemTitle}>{card.title}</Text>
+                      <Text style={[styles.itemMeta, { color: toneColor }]}>{card.meta}</Text>
+                    </View>
+                    <Text style={styles.itemDetail}>{card.detail}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={MUTED} />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
