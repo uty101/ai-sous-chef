@@ -34,3 +34,92 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+function safePreview(value: unknown, maxLength = 800) {
+  try {
+    return JSON.stringify(value).slice(0, maxLength);
+  } catch {
+    return String(value).slice(0, maxLength);
+  }
+}
+
+function debugError(stage: string, message: string, status = 500, extra?: Record<string, unknown>) {
+  console.error(`${stage}: ${message}`, extra ?? '');
+  return jsonResponse(
+    {
+      error: message,
+      stage,
+      ...(extra ? { details: extra } : {}),
+    },
+    status,
+  );
+}
+
+function getSafeOpenAIError(errorText: string) {
+  try {
+    const parsed = JSON.parse(errorText) as {
+      error?: { message?: string; type?: string; code?: string };
+    };
+
+    return {
+      message: parsed.error?.message?.slice(0, 500) ?? 'OpenAI request failed',
+      type: parsed.error?.type ?? 'unknown',
+      code: parsed.error?.code ?? 'unknown',
+    };
+  } catch {
+    return {
+      message: errorText.slice(0, 500),
+      type: 'unknown',
+      code: 'unknown',
+    };
+  }
+}
+
+function extractOutputText(openAIResponse: any) {
+  if (typeof openAIResponse?.output_text === 'string') {
+    return openAIResponse.output_text;
+  }
+
+  const messageItem = openAIResponse?.output?.find((item: any) => item.type === 'message');
+  const outputTextItem = messageItem?.content?.find(
+    (item: any) =>
+      (item.type === 'output_text' || item.type === 'text') && typeof item.text === 'string',
+  );
+
+  if (outputTextItem?.text) {
+    return outputTextItem.text;
+  }
+
+  const contentTextItem = openAIResponse?.output
+    ?.flatMap((item: any) => item.content ?? [])
+    ?.find(
+      (item: any) =>
+        (item.type === 'output_text' || item.type === 'text') && typeof item.text === 'string',
+    );
+
+  return contentTextItem?.text ?? null;
+}
+
+function parseJsonOutput(outputText: string) {
+  try {
+    return JSON.parse(outputText);
+  } catch {
+    const jsonMatch = outputText.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      throw new Error('No JSON object found in model output');
+    }
+
+    return JSON.parse(jsonMatch[0]);
+  }
+}
+
