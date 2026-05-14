@@ -54,3 +54,37 @@ const { width: SCREEN_W } = Dimensions.get('window');
 
 const STORAGE_KEY = 'ai_souschef_user_profile';
 
+// ─── Step definitions ────────────────────────────────────────────────────────
+type StepId =
+  | 'welcome'
+  | 'cooking_level'
+  | 'meals_cooked'
+  | 'daily_time'
+  | 'household'
+  | 'dietary'
+  | 'allergies'
+  | 'spice'
+  | 'equipment'
+  | 'learning_goals'
+  | 'health_goals'
+  | 'budget'
+  | 'shopping_freq'
+  | 'done';
+
+const STEPS: StepId[] = [
+  'welcome',
+  'cooking_level',
+  'meals_cooked',
+  'daily_time',
+  'household',
+  'dietary',
+  'allergies',
+  'spice',
+  'equipment',
+  'learning_goals',
+  'health_goals',
+  'budget',
+  'shopping_freq',
+  'done',
+];
+
