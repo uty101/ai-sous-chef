@@ -587,3 +587,40 @@ function Step({
   );
 }
 
+// ─── Welcome screen ───────────────────────────────────────────────────────────
+function WelcomeStep({ onNext }: { onNext: () => void }) {
+  return (
+    <View style={styles.welcomeContainer}>
+      <View style={styles.welcomeIconWrap}>
+        <Ionicons name="restaurant" size={52} color={ACCENT} />
+      </View>
+      <Text style={styles.welcomeTitle}>Let's personalise your kitchen</Text>
+      <Text style={styles.welcomeSubtitle}>
+        A few quick questions so every recipe, every plan, and every suggestion is built around{' '}
+        <Text style={{ fontWeight: '700' }}>you</Text>.
+      </Text>
+      <Text style={styles.welcomeMeta}>Takes about 2 minutes · You can update anytime</Text>
+      <TouchableOpacity style={styles.welcomeBtn} onPress={onNext} activeOpacity={0.85}>
+        <Text style={styles.welcomeBtnText}>Get started</Text>
+        <Ionicons name="arrow-forward" size={18} color={PRIMARY} style={{ marginLeft: 8 }} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ─── Done screen ──────────────────────────────────────────────────────────────
+function DoneStep() {
+  return (
+    <View style={styles.welcomeContainer}>
+      <View style={[styles.welcomeIconWrap, { backgroundColor: '#E8F8EE' }]}>
+        <Ionicons name="checkmark-circle" size={52} color="#34A853" />
+      </View>
+      <Text style={styles.welcomeTitle}>You're all set!</Text>
+      <Text style={styles.welcomeSubtitle}>
+        Your profile is saved. Every AI suggestion from now on is built around your kitchen.
+      </Text>
+      <Text style={styles.welcomeMeta}>Head back to start cooking.</Text>
+    </View>
+  );
+}
+
