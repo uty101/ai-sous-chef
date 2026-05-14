@@ -75,3 +75,66 @@ const dishSchema = {
   additionalProperties: false,
 };
 
+async function buildDishesFromSearch(
+  searchData: any,
+  platform: 'tiktok' | 'instagram',
+  date: string,
+  openAIKey: string,
+  model: string,
+): Promise<any[]> {
+  const snippets = (searchData.results ?? [])
+    .map((r: any) => `${r.title}\n${r.content}`)
+    .join('\n\n');
+  const answer = searchData.answer ?? '';
+
+  const prompt =
+    `You are a food expert. The date is ${date}. ` +
+    `Based on the search results below about trending food on ${platform === 'tiktok' ? 'TikTok' : 'Instagram'}, ` +
+    `identify the TWO most viral food items (can be meals, snacks, drinks, or desserts) and write a complete recipe for each. They must be different dishes.\n\n` +
+    `Search results:\n${answer}\n\n${snippets}\n\n` +
+    `Rules:\n` +
+    `- title must be 2 to 4 words maximum, the dish name only (e.g. "Birria Tacos", "Miso Salmon", "Smash Burgers") — never list ingredients in the title, never use "with", "and", or descriptive clauses\n` +
+    `- cuisine must be a specific country or tradition (never "Asian", "Mediterranean", "Western" etc — always "Japanese", "Lebanese", "Italian", "Korean", etc.)\n` +
+    `- description must be one punchy sentence under 120 characters\n` +
+    `- never use a hyphen as a punctuation mark or sentence connector (e.g. do not write "fry the garlic - add sauce"); hyphens only in compound words (e.g. "deep-fried") and numeric ranges (e.g. "4-5 minutes")\n` +
+    `- views should look like a real viral count e.g. "2.4M" or "890K"\n` +
+    `- accent: a vibrant hex colour that matches the dish vibe\n` +
+    `- bg: a very light pastel tint of the same hue\n` +
+    `- the two dishes must have different accent colours\n` +
+    `Return valid JSON only, no markdown fences.`;
+
+  const res = await fetch(OPENAI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      input: [{ role: 'user', content: [{ type: 'input_text', text: prompt }] }],
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'viral_dishes',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              dishes: { type: 'array', items: dishSchema },
+            },
+            required: ['dishes'],
+            additionalProperties: false,
+          },
+        },
+      },
+    }),
+  });
+
+  if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const text = extractOutputText(data);
+  if (!text) throw new Error('OpenAI returned no output text');
+  const parsed = JSON.parse(text);
+  return parsed.dishes ?? [];
+}
+
