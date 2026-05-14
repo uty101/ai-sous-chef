@@ -320,3 +320,149 @@ export default function CameraScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#1C1F2E',
+  },
+  camera: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFF8F0',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 14,
+  },
+  topBar: {
+    alignItems: 'flex-start',
+  },
+  previewCard: {
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(28,31,46,0.9)',
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    gap: 10,
+  },
+  previewTitle: {
+    ...brandType,
+    color: '#FFFFFF',
+    fontSize: 20,
+    textTransform: 'uppercase',
+  },
+  title: {
+    ...brandType,
+    color: '#1C1F2E',
+    fontSize: 28,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  helperText: {
+    color: '#8E93A8',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    backgroundColor: 'rgba(255,92,53,0.22)',
+    borderColor: '#FF5C35',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  chipMuted: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  chipText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bottomPanel: {
+    alignItems: 'center',
+    gap: 14,
+  },
+  captureHint: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    backgroundColor: 'rgba(28,31,46,0.84)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+  },
+  captureButton: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#FFBA35',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.45)',
+  },
+  captureButtonDisabled: {
+    opacity: 0.65,
+  },
+  captureInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#1C1F2E',
+  },
+  scanStatus: {
+    color: '#FFFFFF',
+    fontSize: 13,
+  },
+  primaryButton: {
+    minHeight: 54,
+    minWidth: 170,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: '#FF5C35',
+  },
+  secondaryButton: {
+    minHeight: 48,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(28,31,46,0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  buttonText: {
+    ...brandType,
+    color: '#FFFFFF',
+    fontSize: 16,
+    textTransform: 'uppercase',
+  },
+});
+
