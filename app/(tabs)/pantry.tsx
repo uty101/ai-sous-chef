@@ -361,3 +361,90 @@ function dedupeIngredients(ingredients: string[]): string[] {
   );
 }
 
+const CHIP_PALETTE = [
+  { bg: '#FFE8E2', text: '#FF5C35' },
+  { bg: '#FFF3D0', text: '#D4900A' },
+  { bg: '#E8F8EE', text: '#1E8C45' },
+  { bg: '#EBF3FF', text: '#2563EB' },
+  { bg: '#F0EBFF', text: '#6D28D9' },
+  { bg: '#E0F5F3', text: '#0F7B6C' },
+  { bg: '#FDE8F4', text: '#B0318A' },
+];
+
+function chipColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
+  return CHIP_PALETTE[hash % CHIP_PALETTE.length];
+}
+
+const DEFAULT_BASKET = ['Chicken thighs', 'Spinach', 'Greek yogurt', 'Rice', 'Tomatoes', 'Eggs'];
+const DEFAULT_STAPLES = ['Olive oil', 'Garlic', 'Soy sauce', 'Chilli flakes', 'Pasta', 'Chickpeas'];
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.sectionTitle}>{children}</Text>;
+}
+
+function CategoryChips({ items, onRemove, allCollapsed = false }: { items: string[]; onRemove: (item: string) => void; allCollapsed?: boolean }) {
+  const groups = CATEGORY_ORDER
+    .map((cat) => ({ cat, catItems: items.filter((i) => categorizeIngredient(i) === cat) }))
+    .filter(({ catItems }) => catItems.length > 0);
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggle = (cat: string) => setCollapsed(prev => ({ ...prev, [cat]: !prev[cat] }));
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    CATEGORY_ORDER.forEach(c => { next[c] = allCollapsed; });
+    setCollapsed(next);
+  }, [allCollapsed]);
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.columnsRow}>
+      {groups.map(({ cat, catItems }) => {
+        const colors = CATEGORY_ACCENT[cat];
+        const isCollapsed = collapsed[cat] ?? false;
+        return (
+          <View key={cat} style={styles.column}>
+            <TouchableOpacity
+              style={[styles.columnHeader, { backgroundColor: colors.bg }]}
+              onPress={() => toggle(cat)}
+              activeOpacity={0.75}>
+              <Text style={[styles.columnHeaderText, { color: colors.accent }]} numberOfLines={1}>
+                {cat}
+              </Text>
+              <View style={[styles.columnCount, { backgroundColor: colors.accent }]}>
+                <Text style={styles.columnCountText}>{catItems.length}</Text>
+              </View>
+              <Ionicons
+                name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+                size={11}
+                color={colors.accent}
+              />
+            </TouchableOpacity>
+            {!isCollapsed && (
+              <View style={styles.columnItems}>
+                {catItems.map((item) => (
+                  <View key={item} style={[styles.columnChip, { borderColor: colors.accent + '55' }]}>
+                    <Text style={[styles.columnChipText, { color: colors.accent }]} numberOfLines={2}>
+                      {item}
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.columnChipRemove, { backgroundColor: colors.accent }]}
+                      onPress={() => onRemove(item)}
+                      activeOpacity={0.85}>
+                      <Ionicons name="close" size={8} color={SURFACE} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
