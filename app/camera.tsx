@@ -51,3 +51,41 @@ function isDetectionPreviewResponse(value: unknown): value is DetectionPreviewRe
   );
 }
 
+async function readErrorBody(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    try {
+      return await response.text();
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function localImageToDataUrl(localImageUri: string) {
+  const normalizedImage = await ImageManipulator.manipulateAsync(
+    localImageUri,
+    [{ resize: { width: PREVIEW_SCAN_MAX_EDGE } }],
+    {
+      base64: true,
+      compress: 0.65,
+      format: ImageManipulator.SaveFormat.JPEG,
+    },
+  );
+
+  if (!normalizedImage.base64) {
+    throw new Error('Preview image could not be converted for detection');
+  }
+
+  return `data:image/jpeg;base64,${normalizedImage.base64}`;
+}
+
+async function getFunctionHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    apikey: SUPABASE_ANON_KEY,
+  };
+}
+
