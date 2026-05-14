@@ -286,3 +286,80 @@ function MealSheet({ meal, onClose }: { meal: MealDetail; onClose: () => void })
   );
 }
 
+export default function RecentRecipesScreen() {
+  const { openMe } = useMePanel();
+  const navigation = useNavigation();
+  const [selectedMeal, setSelectedMeal] = useState<MealDetail | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', () => openMe());
+    return unsubscribe;
+  }, [navigation, openMe]);
+
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false, gestureEnabled: true }} />
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <View style={styles.hero}>
+          <TouchableOpacity style={styles.heroBackBtn} onPress={() => router.back()} activeOpacity={0.8}>
+            <Ionicons name="chevron-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.heroTitle}>Recent Recipes</Text>
+        </View>
+
+        <ScrollView
+          style={styles.screen}
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}>
+          {RECENT_RECIPES.map((recipe) => (
+            <TouchableOpacity
+              key={recipe.id}
+              style={[styles.card, { backgroundColor: recipe.bg }]}
+              onPress={() => setSelectedMeal(recipe)}
+              activeOpacity={0.88}>
+              <View style={styles.cardTop}>
+                <View style={styles.agoPill}>
+                  <Text style={styles.agoPillText}>
+                    {recipe.createdAt ? timeAgo(recipe.createdAt) : ''}
+                  </Text>
+                </View>
+                <View style={styles.timeBadge}>
+                  <Ionicons name="time-outline" size={13} color={MUTED} />
+                  <Text style={styles.timeBadgeText}>{recipe.timeMinutes} min</Text>
+                </View>
+              </View>
+              <Text style={styles.cardTitle}>{recipe.title}</Text>
+              <Text style={styles.cardDesc} numberOfLines={2}>{recipe.description}</Text>
+              <View style={styles.macroRow}>
+                {[
+                  { label: 'cal', value: recipe.nutrition.calories },
+                  { label: 'protein', value: `${recipe.nutrition.protein}g` },
+                  { label: 'carbs', value: `${recipe.nutrition.carbs}g` },
+                  { label: 'fats', value: `${recipe.nutrition.fats}g` },
+                ].map((m, i, arr) => (
+                  <View key={m.label} style={{ flexDirection: 'row', flex: 1 }}>
+                    <View style={styles.macroItem}>
+                      <Text style={[styles.macroValue, { color: recipe.accent }]}>{m.value}</Text>
+                      <Text style={styles.macroLabel}>{m.label}</Text>
+                    </View>
+                    {i < arr.length - 1 && <View style={styles.macroDivider} />}
+                  </View>
+                ))}
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        </SafeAreaView>
+
+      <Modal
+        visible={!!selectedMeal}
+        animationType="slide"
+        onRequestClose={() => setSelectedMeal(null)}>
+        {selectedMeal && (
+          <MealSheet meal={selectedMeal} onClose={() => setSelectedMeal(null)} />
+        )}
+      </Modal>
+    </>
+  );
+}
+
