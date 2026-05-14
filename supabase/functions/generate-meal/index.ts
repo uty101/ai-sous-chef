@@ -371,3 +371,84 @@ function getOpenAIRequestBody(imageUri: string, goal: string, mode: DetectionMod
   };
 }
 
+Deno.serve(async (request: Request) => {
+  if (request.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  if (request.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405);
+  }
+
+  try {
+    const { imageUri, goal, mode: rawMode } = await request.json();
+    const mode: DetectionMode = rawMode === 'preview' ? 'preview' : 'detect';
+
+    if (!imageUri || !goal) {
+      return jsonResponse({ error: 'imageUri and goal are required' }, 400);
+    }
+
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+
+    if (!openAIApiKey) {
+      return debugError('missing_openai_key', 'Missing OpenAI API key');
+    }
+
+    const openAIResponse = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(getOpenAIRequestBody(imageUri, goal, mode)),
+    });
+
+    if (!openAIResponse.ok) {
+      const errorText = await openAIResponse.text();
+      const details = getSafeOpenAIError(errorText);
+      console.error('OpenAI request failed:', errorText);
+      return jsonResponse(
+        {
+          error: 'OpenAI request failed',
+          stage: 'openai_request_failed',
+          details,
+        },
+        502,
+      );
+    }
+
+    const openAIData = await openAIResponse.json();
+    const outputText = extractOutputText(openAIData);
+
+    if (!outputText) {
+      return debugError('openai_no_output_text', 'OpenAI response did not contain output text', 500, {
+        responsePreview: safePreview(openAIData),
+      });
+    }
+
+    let parsedResult: unknown;
+
+    try {
+      parsedResult = parseJsonOutput(outputText);
+    } catch (error) {
+      return debugError('openai_invalid_json', 'OpenAI returned invalid JSON', 500, {
+        outputPreview: outputText.slice(0, 800),
+        parseError: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    const detectionResult = normalizeDetectionResponse(parsedResult);
+
+    if (!detectionResult) {
+      return debugError('openai_invalid_detection_shape', 'OpenAI returned unexpected detection JSON shape', 500, {
+        parsedPreview: safePreview(parsedResult),
+      });
+    }
+
+    return jsonResponse(detectionResult);
+  } catch (error) {
+    return debugError('function_exception', 'Ingredient detection function failed', 500, {
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
