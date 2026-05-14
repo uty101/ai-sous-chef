@@ -138,3 +138,121 @@ export default function DiscoverScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: CREAM,
+  },
+  screen: {
+    flex: 1,
+    backgroundColor: CREAM,
+  },
+  container: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 92,
+  },
+  content: {
+    gap: 16,
+  },
+  hero: {
+    backgroundColor: INK,
+    borderRadius: 26,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    gap: 12,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  heroCopy: {
+    flex: 1,
+  },
+  heroIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+    backgroundColor: GOLD,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyebrow: {
+    color: GOLD,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  title: {
+    ...brandType,
+    color: SURFACE,
+    fontSize: 36,
+    lineHeight: 42,
+    textTransform: 'uppercase',
+  },
+  subtitle: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  sectionTitle: {
+    ...brandType,
+    color: INK,
+    fontSize: 18,
+    textTransform: 'uppercase',
+  },
+  cardStack: {
+    gap: 10,
+  },
+  card: {
+    minHeight: 82,
+    backgroundColor: SURFACE,
+    borderRadius: 24,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#E2E3EA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  itemIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  itemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  itemTitle: {
+    ...brandType,
+    flex: 1,
+    color: INK,
+    fontSize: 16,
+    textTransform: 'uppercase',
+  },
+  itemMeta: {
+    ...brandType,
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  itemDetail: {
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+});
+
+
+
+
