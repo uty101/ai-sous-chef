@@ -384,3 +384,119 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <Text style={styles.sectionTitle}>{children}</Text>;
 }
 
+const FAVORITES_KEY = 'saved_favorites';
+const SAVED_RECIPES_DATA_KEY = 'saved_recipes_data';
+
+function RecipeSheet({ recipe, onClose, isFav, onToggleFav }: { recipe: RecipeDetail; onClose: () => void; isFav: boolean; onToggleFav: () => void }) {
+  const units = useUnits();
+  const accent = recipe.accent ?? BRAND_ORANGE;
+  const bg = recipe.bg ?? CREAM;
+  const pillLabel = recipe.goal ? recipe.goal.split(' ').pop()! : null;
+
+  // Steps update when the parent populates them via the API call in handleOpenPlannedMeal.
+  // No secondary personalise-steps call here — that would add a second network round-trip
+  // and delay steps appearing by another 5-10 s for no meaningful gain in a calendar popup.
+  const displaySteps = recipe.steps;
+  const stepsLoading = recipe.steps.length === 0;
+
+  return (
+    <View style={styles.sheetOverlay}>
+      <View style={[styles.sheetPanel, { backgroundColor: bg }]}>
+        {/* Header — tags + close button on same row */}
+        <View style={styles.sheetHeader}>
+          <View style={styles.sheetHeaderTags}>
+            {pillLabel ? (
+              <View style={[styles.sheetGoalPill, { backgroundColor: accent }]}>
+                <Text style={styles.sheetGoalPillText}>{pillLabel}</Text>
+              </View>
+            ) : null}
+            <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+              <Ionicons name="time-outline" size={13} color={MUTED} />
+              <Text style={styles.sheetTimeBadgeText}>{recipe.timeMinutes} min</Text>
+            </View>
+            {recipe.cuisine ? (
+              <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+                <Text style={styles.sheetTimeBadgeText}>{recipe.cuisine}</Text>
+              </View>
+            ) : null}
+            {recipe.createdAt ? (
+              <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+                <Ionicons name="checkmark-circle" size={13} color={GREEN} />
+                <Text style={styles.sheetTimeBadgeText}>{formatRelativeDate(recipe.createdAt)}</Text>
+              </View>
+            ) : null}
+          </View>
+          <TouchableOpacity style={[styles.sheetCloseBtn, { backgroundColor: 'rgba(255,255,255,0.7)' }]} onPress={onClose} activeOpacity={0.8}>
+            <Ionicons name="close" size={20} color={accent} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.sheetScrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.sheetTitleRow}>
+            <Text style={[styles.sheetTitle, { color: accent, textShadowColor: INK, textShadowOffset: { width: 0.25, height: 0.25 }, textShadowRadius: 0 }]}>{recipe.title}</Text>
+            <TouchableOpacity onPress={onToggleFav} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+              <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={22} color={isFav ? BRAND_ORANGE : accent} />
+            </TouchableOpacity>
+          </View>
+
+          {recipe.description !== '' && (
+            <Text style={styles.sheetDescription} numberOfLines={1}>{recipe.description}</Text>
+          )}
+
+          <View style={[styles.sheetDivider, { backgroundColor: accent + '30' }]} />
+
+          <Text style={[styles.sheetSectionHead, { color: accent }]}>Ingredients</Text>
+          {recipe.ingredients.map((ing, i) => (
+            <View key={i} style={styles.sheetListRow}>
+              <Text style={[styles.sheetBullet, { color: accent }]}>{'•'}</Text>
+              <Text style={styles.sheetListText}>{convertText(ing, units)}</Text>
+            </View>
+          ))}
+
+          <View style={[styles.sheetDivider, { backgroundColor: accent + '30' }]} />
+
+          <Text style={[styles.sheetSectionHead, { color: accent }]}>Steps</Text>
+          {stepsLoading ? (
+            <ActivityIndicator size="small" color={accent} style={{ marginVertical: 12 }} />
+          ) : (
+            displaySteps.map((step, i) => (
+              <View key={i} style={styles.sheetListRow}>
+                <View style={[styles.sheetStepCircle, { backgroundColor: accent }]}>
+                  <Text style={styles.sheetStepCircleText}>{i + 1}</Text>
+                </View>
+                <Text style={styles.sheetListText}>{convertText(step, units)}</Text>
+              </View>
+            ))
+          )}
+
+          <View style={[styles.sheetDivider, { backgroundColor: accent + '30' }]} />
+          <Text style={[styles.sheetSectionHead, { color: accent }]}>Nutritional Info</Text>
+          <View style={[styles.sheetMacroGrid, { backgroundColor: 'rgba(255,255,255,0.65)', borderColor: accent + '30' }]}>
+            <View style={styles.sheetMacroCell}>
+              <Text style={[styles.sheetMacroValue, { color: accent }]}>{recipe.nutrition?.calories ?? '—'}</Text>
+              <Text style={styles.sheetMacroLabel}>Calories</Text>
+            </View>
+            <View style={[styles.sheetMacroDivider, { backgroundColor: accent + '30' }]} />
+            <View style={styles.sheetMacroCell}>
+              <Text style={[styles.sheetMacroValue, { color: accent }]}>{recipe.nutrition?.protein != null ? `${recipe.nutrition.protein}g` : '—'}</Text>
+              <Text style={styles.sheetMacroLabel}>Protein</Text>
+            </View>
+            <View style={[styles.sheetMacroDivider, { backgroundColor: accent + '30' }]} />
+            <View style={styles.sheetMacroCell}>
+              <Text style={[styles.sheetMacroValue, { color: accent }]}>{recipe.nutrition?.carbs != null ? `${recipe.nutrition.carbs}g` : '—'}</Text>
+              <Text style={styles.sheetMacroLabel}>Carbs</Text>
+            </View>
+            <View style={[styles.sheetMacroDivider, { backgroundColor: accent + '30' }]} />
+            <View style={styles.sheetMacroCell}>
+              <Text style={[styles.sheetMacroValue, { color: accent }]}>{recipe.nutrition?.fats != null ? `${recipe.nutrition.fats}g` : '—'}</Text>
+              <Text style={styles.sheetMacroLabel}>Fats</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 24 }} />
+        </ScrollView>
+      </View>
+    </View>
+  );
+}
+
