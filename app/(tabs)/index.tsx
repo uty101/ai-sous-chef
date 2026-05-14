@@ -503,3 +503,68 @@ const MOCK_RECENT_RECIPES: MealDetail[] = [
   },
 ];
 
+function parseViews(views: string | undefined): number {
+  if (!views) return 0;
+  const n = parseFloat(views);
+  if (views.toUpperCase().includes('M')) return n * 1_000_000;
+  if (views.toUpperCase().includes('K')) return n * 1_000;
+  return n;
+}
+
+function timeAgo(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return `${Math.floor(diffDays / 7)}wk ago`;
+}
+
+
+const ING_SKIP = new Set([
+  // salt
+  'salt','sea salt','kosher salt','table salt','flaky salt','rock salt','salt and pepper','salt and black pepper',
+  // pepper (spice)
+  'pepper','black pepper','white pepper','ground pepper','cracked pepper','peppercorns','black peppercorns','mixed peppercorns',
+  // spices
+  'chilli flakes','chili flakes','red pepper flakes','cayenne','cayenne pepper',
+  'paprika','smoked paprika','sweet paprika','paprika powder',
+  'cumin','ground cumin','cumin seeds','coriander','ground coriander','coriander seeds',
+  'turmeric','ground turmeric','garam masala','curry powder','allspice','cardamom','ground cardamom',
+  'cloves','ground cloves','nutmeg','ground nutmeg','mace',
+  'cinnamon','ground cinnamon','cinnamon sticks','cinnamon stick',
+  'oregano','dried oregano','thyme','dried thyme','rosemary','dried rosemary',
+  'basil','dried basil','bay leaf','bay leaves','sage','dried sage','tarragon','dried tarragon',
+  'mixed herbs','dried herbs','italian seasoning','herbes de provence','zaatar','za\'atar',
+  'star anise','fennel seeds','mustard seeds','nigella seeds','sesame seeds',
+  'chaat masala','ras el hanout','five spice','chinese five spice','berbere',
+  // oils & fats
+  'olive oil','extra virgin olive oil','oil','vegetable oil','sunflower oil',
+  'sesame oil','toasted sesame oil','coconut oil','rapeseed oil','canola oil',
+  'groundnut oil','peanut oil','cooking oil','spray oil','avocado oil','grapeseed oil','truffle oil',
+  'butter','unsalted butter','salted butter',
+  // sugars & sweeteners
+  'sugar','white sugar','brown sugar','caster sugar','icing sugar','demerara sugar','muscovado sugar',
+  'honey','maple syrup','agave','agave syrup','golden syrup','treacle','molasses',
+  // flours & starches
+  'flour','plain flour','self-raising flour','bread flour','whole wheat flour','wholemeal flour',
+  'cornflour','cornstarch','arrowroot','tapioca starch',
+  // water
+  'water','boiling water','cold water',
+  // sauces & condiments used as seasoning
+  'soy sauce','tamari','fish sauce','oyster sauce','worcestershire sauce','hoisin sauce',
+  'hot sauce','chilli sauce','sriracha','tabasco','sambal',
+  'ketchup','tomato ketchup',
+  'vinegar','red wine vinegar','white wine vinegar','balsamic vinegar','apple cider vinegar','rice vinegar','sherry vinegar','malt vinegar',
+  'miso','white miso','red miso','miso paste',
+  'tomato paste','tomato puree','tomato concentrate',
+  // stocks
+  'stock','chicken stock','beef stock','vegetable stock','fish stock','dashi','broth','chicken broth','beef broth','bouillon','stock cube','stock cubes',
+  // citrus juices as seasoning
+  'lemon juice','lime juice','orange juice',
+  // baking agents
+  'baking powder','baking soda','bicarbonate of soda','bicarb','yeast','dried yeast','instant yeast',
+  // alcohol as cooking liquid
+  'wine','red wine','white wine','dry white wine',
+]);
+
