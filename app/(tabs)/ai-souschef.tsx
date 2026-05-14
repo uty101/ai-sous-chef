@@ -444,3 +444,108 @@ function mergeIngredientNames(ingredients: Ingredient[]) {
   return Array.from(names.values());
 }
 
+function RecipeCard({ recipe, vibe, diet, isFav, onToggleFav }: {
+  recipe: RecipeResult;
+  vibe: Vibe | null;
+  diet: Diet;
+  isFav: boolean;
+  onToggleFav: () => void;
+}) {
+  const vc = DIET_DETAILS[diet];
+  const [displaySteps, setDisplaySteps] = useState<string[]>(recipe.steps);
+  const [stepsLoading, setStepsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    personaliseSteps(
+      { title: recipe.title, ingredients: recipe.ingredients, steps: recipe.steps, timeMinutes: recipe.timeMinutes },
+      vibe ?? undefined,
+    )
+      .then(steps => { if (!cancelled) { setDisplaySteps(steps); setStepsLoading(false); } })
+      .catch(() => { if (!cancelled) setStepsLoading(false); });
+    return () => { cancelled = true; };
+  }, [recipe.title]);
+
+  return (
+    <View style={[styles.recipeSheet, { backgroundColor: vc.bg }]}>
+      {/* Tags */}
+      <View style={styles.recipeSheetTags}>
+        {vibe ? (
+          <View style={[styles.recipeSheetPill, { backgroundColor: vc.accent }]}>
+            <Text style={styles.recipeSheetPillText}>{vibe}</Text>
+          </View>
+        ) : null}
+        <View style={[styles.recipeSheetBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+          <Ionicons name="time-outline" size={13} color={MUTED} />
+          <Text style={styles.recipeSheetBadgeText}>{recipe.timeMinutes} min</Text>
+        </View>
+        {diet !== 'No Preference' ? (
+          <View style={[styles.recipeSheetBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+            <Text style={styles.recipeSheetBadgeText}>{diet}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* Title + heart */}
+      <View style={styles.recipeSheetTitleRow}>
+        <Text style={[styles.recipeSheetTitle, { color: vc.accent, textShadowColor: INK }]}>{recipe.title}</Text>
+        <TouchableOpacity onPress={onToggleFav} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+          <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={22} color={isFav ? BRAND_ORANGE : vc.accent} />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.recipeSheetDescription} numberOfLines={1}>{recipe.description}</Text>
+
+      <View style={[styles.recipeSheetDivider, { backgroundColor: vc.accent + '30' }]} />
+
+      <Text style={[styles.recipeSheetSectionHead, { color: vc.accent }]}>Ingredients</Text>
+      {recipe.ingredients.map((ing, i) => (
+        <View key={i} style={styles.recipeSheetListRow}>
+          <Text style={[styles.recipeSheetBullet, { color: vc.accent }]}>{'•'}</Text>
+          <Text style={styles.recipeSheetListText}>{ing}</Text>
+        </View>
+      ))}
+
+      <View style={[styles.recipeSheetDivider, { backgroundColor: vc.accent + '30' }]} />
+
+      <Text style={[styles.recipeSheetSectionHead, { color: vc.accent }]}>Steps</Text>
+      {stepsLoading ? (
+        <ActivityIndicator size="small" color={vc.accent} style={{ marginVertical: 12 }} />
+      ) : (
+        displaySteps.map((step, i) => (
+          <View key={i} style={styles.recipeSheetListRow}>
+            <View style={[styles.recipeSheetStepCircle, { backgroundColor: vc.accent }]}>
+              <Text style={styles.recipeSheetStepCircleText}>{i + 1}</Text>
+            </View>
+            <Text style={styles.recipeSheetListText}>{step}</Text>
+          </View>
+        ))
+      )}
+
+      <View style={[styles.recipeSheetDivider, { backgroundColor: vc.accent + '30' }]} />
+      <Text style={[styles.recipeSheetSectionHead, { color: vc.accent }]}>Nutritional Info</Text>
+      <View style={[styles.recipeSheetMacroGrid, { backgroundColor: 'rgba(255,255,255,0.65)', borderColor: vc.accent + '30' }]}>
+        <View style={styles.recipeSheetMacroCell}>
+          <Text style={[styles.recipeSheetMacroValue, { color: vc.accent }]}>{recipe.nutrition?.calories ?? '—'}</Text>
+          <Text style={styles.recipeSheetMacroLabel}>Calories</Text>
+        </View>
+        <View style={[styles.recipeSheetMacroDivider, { backgroundColor: vc.accent + '30' }]} />
+        <View style={styles.recipeSheetMacroCell}>
+          <Text style={[styles.recipeSheetMacroValue, { color: vc.accent }]}>{recipe.nutrition?.protein != null ? `${recipe.nutrition.protein}g` : '—'}</Text>
+          <Text style={styles.recipeSheetMacroLabel}>Protein</Text>
+        </View>
+        <View style={[styles.recipeSheetMacroDivider, { backgroundColor: vc.accent + '30' }]} />
+        <View style={styles.recipeSheetMacroCell}>
+          <Text style={[styles.recipeSheetMacroValue, { color: vc.accent }]}>{recipe.nutrition?.carbs != null ? `${recipe.nutrition.carbs}g` : '—'}</Text>
+          <Text style={styles.recipeSheetMacroLabel}>Carbs</Text>
+        </View>
+        <View style={[styles.recipeSheetMacroDivider, { backgroundColor: vc.accent + '30' }]} />
+        <View style={styles.recipeSheetMacroCell}>
+          <Text style={[styles.recipeSheetMacroValue, { color: vc.accent }]}>{recipe.nutrition?.fats != null ? `${recipe.nutrition.fats}g` : '—'}</Text>
+          <Text style={styles.recipeSheetMacroLabel}>Fats</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
