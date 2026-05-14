@@ -697,3 +697,318 @@ function ShoppingListModal({
   );
 }
 
+export default function PantryTabScreen() {
+  const [basketItems, setBasketItems] = useState<string[]>([]);
+  const [stapleItems, setStapleItems] = useState<string[]>([]);
+  const [newItem, setNewItem] = useState('');
+  const [newStaple, setNewStaple] = useState('');
+  const [basketAllCollapsed, setBasketAllCollapsed] = useState(true);
+  const [staplesAllCollapsed, setStaplesAllCollapsed] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [showLeftoversInfo, setShowLeftoversInfo] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
+
+  const basketLoaded = useRef(false);
+  const staplesLoaded = useRef(false);
+
+  useEffect(() => {
+    const loadStorage = async () => {
+      const [storedBasket, storedStaples] = await Promise.all([
+        AsyncStorage.getItem(BASKET_KEY),
+        AsyncStorage.getItem(STAPLES_KEY),
+      ]);
+      setBasketItems(storedBasket !== null ? JSON.parse(storedBasket) : DEFAULT_BASKET);
+      setStapleItems(storedStaples !== null ? JSON.parse(storedStaples) : DEFAULT_STAPLES);
+      basketLoaded.current = true;
+      staplesLoaded.current = true;
+      setLoaded(true);
+    };
+    loadStorage();
+  }, []);
+
+
+  useEffect(() => {
+    if (basketLoaded.current) {
+      AsyncStorage.setItem(BASKET_KEY, JSON.stringify(basketItems));
+    }
+  }, [basketItems]);
+
+  useEffect(() => {
+    if (staplesLoaded.current) {
+      AsyncStorage.setItem(STAPLES_KEY, JSON.stringify(stapleItems));
+    }
+  }, [stapleItems]);
+
+  const addBasketItem = () => {
+    const trimmed = newItem.trim();
+    if (!trimmed) return;
+    setBasketItems((items) => {
+      const exists = items.some((i) => i.toLowerCase() === trimmed.toLowerCase());
+      return exists ? items : [...items, trimmed];
+    });
+    setNewItem('');
+  };
+
+  const removeBasketItem = (item: string) => {
+    setBasketItems((items) => items.filter((i) => i !== item));
+  };
+
+  const addStaple = () => {
+    const trimmed = newStaple.trim();
+    if (!trimmed) return;
+    setStapleItems((items) => {
+      const exists = items.some((i) => i.toLowerCase() === trimmed.toLowerCase());
+      return exists ? items : [...items, trimmed];
+    });
+    setNewStaple('');
+  };
+
+  const removeStaple = (item: string) => {
+    setStapleItems((items) => items.filter((i) => i !== item));
+  };
+
+  const clearBasket = () => {
+    setBasketItems([]);
+  };
+
+  const clearStaples = () => {
+    setStapleItems([]);
+  };
+
+  const addShoppedToPantry = (bought: string[]) => {
+    setBasketItems((prev) => {
+      const next = [...prev];
+      for (const name of bought) {
+        if (!next.some((i) => i.toLowerCase() === name.toLowerCase())) next.push(name);
+      }
+      return next;
+    });
+  };
+
+  const pantryAll = [...basketItems, ...stapleItems];
+
+  const leftoverSuggestion = useMemo(() => {
+    if (!loaded) return null;
+    const all = [...basketItems, ...stapleItems].map((s) => s.toLowerCase());
+    if (all.length === 0) return null;
+    let best: QuickMeal | null = null;
+    let bestScore = 0;
+    for (const meal of QUICK_MEALS) {
+      const score = meal.keys.filter((k) => all.some((i) => i.includes(k) || k.includes(i))).length;
+      if (score > bestScore) { bestScore = score; best = meal; }
+    }
+    return best ?? QUICK_MEALS[0];
+  }, [loaded, basketItems, stapleItems]);
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <StatusBar style="light" backgroundColor={INK} />
+      <View style={[styles.hero, { paddingTop: TOP_INSET + 22 }]}>
+        <Text style={styles.eyebrow}>Ingredient bank</Text>
+        <Text style={styles.title}>Pantry</Text>
+      </View>
+
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+
+          {/* Action row */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.actionBtnGold}
+              onPress={() => router.push('/camera')}
+              activeOpacity={0.85}>
+              <Ionicons name="camera-outline" size={14} color={INK} />
+              <Text style={styles.actionBtnGoldText}>Scan</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionBtnTeal}
+              onPress={() => setShowShoppingList(true)}
+              activeOpacity={0.85}>
+              <Ionicons name="cart-outline" size={14} color={SURFACE} />
+              <Text style={styles.actionBtnTealText}>Shopping</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* This Week's Basket */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="basket-outline" size={14} color={BRAND_ORANGE} />
+              <SectionTitle>This Week&apos;s Basket</SectionTitle>
+              <View style={styles.sectionDividerLine} />
+              <View style={styles.sectionActions}>
+                {basketItems.length > 0 && (
+                  <TouchableOpacity style={styles.headerPill} onPress={() => setBasketAllCollapsed(v => !v)} activeOpacity={0.7}>
+                    <Text style={styles.headerPillText}>{basketAllCollapsed ? 'Open all' : 'Collapse all'}</Text>
+                  </TouchableOpacity>
+                )}
+                {basketItems.length > 0 && (
+                  <TouchableOpacity style={styles.headerPill} onPress={clearBasket} activeOpacity={0.7}>
+                    <Text style={styles.headerPillText}>Clear all</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.addBar}>
+              <TextInput
+                style={styles.addBarInput}
+                placeholder="Add ingredient"
+                placeholderTextColor={MUTED}
+                value={newItem}
+                onChangeText={setNewItem}
+                onSubmitEditing={addBasketItem}
+                returnKeyType="done"
+              />
+              <TouchableOpacity style={styles.addBarBtn} onPress={addBasketItem} activeOpacity={0.85}>
+                <Ionicons name="add" size={14} color={SURFACE} />
+              </TouchableOpacity>
+            </View>
+
+            {basketItems.length === 0 ? (
+              <View style={styles.emptyChipState}>
+                <Text style={styles.emptyChipText}>Your basket is empty. Add ingredients above.</Text>
+              </View>
+            ) : (
+              <CategoryChips items={basketItems} onRemove={removeBasketItem} allCollapsed={basketAllCollapsed} />
+            )}
+          </View>
+
+          {/* Staples */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="archive-outline" size={14} color={BRAND_ORANGE} />
+              <SectionTitle>Staples</SectionTitle>
+              <View style={styles.sectionDividerLine} />
+              <View style={styles.sectionActions}>
+                {stapleItems.length > 0 && (
+                  <TouchableOpacity style={styles.headerPill} onPress={() => setStaplesAllCollapsed(v => !v)} activeOpacity={0.7}>
+                    <Text style={styles.headerPillText}>{staplesAllCollapsed ? 'Open all' : 'Collapse all'}</Text>
+                  </TouchableOpacity>
+                )}
+                {stapleItems.length > 0 && (
+                  <TouchableOpacity style={styles.headerPill} onPress={clearStaples} activeOpacity={0.7}>
+                    <Text style={styles.headerPillText}>Clear all</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.addBar}>
+              <TextInput
+                style={styles.addBarInput}
+                placeholder="Add staple"
+                placeholderTextColor={MUTED}
+                value={newStaple}
+                onChangeText={setNewStaple}
+                onSubmitEditing={addStaple}
+                returnKeyType="done"
+              />
+              <TouchableOpacity style={styles.addBarBtn} onPress={addStaple} activeOpacity={0.85}>
+                <Ionicons name="add" size={14} color={SURFACE} />
+              </TouchableOpacity>
+            </View>
+
+            {stapleItems.length === 0 ? (
+              <View style={styles.emptyChipState}>
+                <Text style={styles.emptyChipText}>No staples yet. Add some above.</Text>
+              </View>
+            ) : (
+              <CategoryChips items={stapleItems} onRemove={removeStaple} allCollapsed={staplesAllCollapsed} />
+            )}
+          </View>
+
+          {/* Leftovers Lab */}
+          <View style={styles.section}>
+            <View style={styles.labTitleRow}>
+              <Ionicons name="flask-outline" size={14} color={BRAND_ORANGE} />
+              <SectionTitle>Leftovers Lab</SectionTitle>
+              <View style={styles.sectionDividerLine} />
+              <TouchableOpacity
+                onPress={() => setShowLeftoversInfo(true)}
+                activeOpacity={0.7}
+                style={styles.infoIconButton}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="information-circle-outline" size={18} color={MUTED} />
+              </TouchableOpacity>
+            </View>
+
+            {!leftoverSuggestion ? (
+              <View style={styles.emptyChipState}>
+                <Text style={styles.emptyChipText}>Add items to your basket above to get started.</Text>
+              </View>
+            ) : (
+              <View style={[styles.labResultCard, { backgroundColor: leftoverSuggestion.bg }]}>
+                <View style={styles.labResultHeader}>
+                  <View style={styles.labResultTitleRow}>
+                    <Text style={[styles.labResultTitle, { color: leftoverSuggestion.accent }]}>{leftoverSuggestion.title}</Text>
+                    <View style={styles.labPillRow}>
+                      <View style={styles.labPill}>
+                        <Text style={[styles.labPillText, { color: leftoverSuggestion.accent }]}>{leftoverSuggestion.cuisine}</Text>
+                      </View>
+                      <View style={styles.labPill}>
+                        <Ionicons name="time-outline" size={11} color={leftoverSuggestion.accent} />
+                        <Text style={[styles.labPillText, { color: leftoverSuggestion.accent }]}>{leftoverSuggestion.timeMinutes}m</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.labIngredientRow}>
+                  {dedupeIngredients(leftoverSuggestion.keys)
+                    .slice(0, 5)
+                    .map((key) => (
+                      <View key={key} style={[styles.labIngredientPill, { backgroundColor: `${leftoverSuggestion.accent}22` }]}>
+                        <Text style={[styles.labIngredientPillText, { color: leftoverSuggestion.accent }]}>
+                          {key.replace(/\b\w/g, c => c.toUpperCase())}
+                        </Text>
+                      </View>
+                    ))}
+                </View>
+                <View style={[styles.labDivider, { backgroundColor: `${leftoverSuggestion.accent}30` }]} />
+                <Text style={[styles.labStepsLabel, { color: leftoverSuggestion.accent }]}>How to make it</Text>
+                {leftoverSuggestion.steps.map((step, i) => (
+                  <View key={i} style={styles.labStep}>
+                    <Text style={[styles.labStepNum, { backgroundColor: leftoverSuggestion.accent }]}>{i + 1}</Text>
+                    <Text style={styles.labStepText}>{step}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+        </View>
+      </ScrollView>
+
+      <ShoppingListModal
+        visible={showShoppingList}
+        onClose={() => setShowShoppingList(false)}
+        pantryAll={pantryAll}
+        onAddToPantry={addShoppedToPantry}
+      />
+
+      <Modal
+        visible={showLeftoversInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLeftoversInfo(false)}>
+        <TouchableOpacity style={styles.infoOverlay} activeOpacity={1} onPress={() => setShowLeftoversInfo(false)}>
+          <View style={styles.infoPanel}>
+            <Text style={styles.infoPanelTitle}>Leftovers Lab</Text>
+            <Text style={styles.infoPanelBody}>
+              Based on what's in your basket and staples, the Leftovers Lab picks one quick, fun dish you can make right now. No shopping needed.
+            </Text>
+            <Text style={styles.infoPanelBody}>
+              The suggestion updates automatically whenever your basket or staples change.
+            </Text>
+            <TouchableOpacity onPress={() => setShowLeftoversInfo(false)} style={styles.infoPanelClose}>
+              <Text style={styles.infoPanelCloseText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
