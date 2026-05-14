@@ -286,3 +286,90 @@ function isRecipeResult(value: unknown): value is RecipeResult {
   );
 }
 
+async function readErrorBody(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    try {
+      return await response.text();
+    } catch {
+      return null;
+    }
+  }
+}
+
+function getBackendErrorStage(errorBody: unknown) {
+  if (!errorBody || typeof errorBody !== 'object') {
+    return null;
+  }
+
+  const stage = (errorBody as Record<string, unknown>).stage;
+  return typeof stage === 'string' ? stage : null;
+}
+
+function getBackendErrorCode(errorBody: unknown) {
+  if (!errorBody || typeof errorBody !== 'object') {
+    return null;
+  }
+
+  const details = (errorBody as Record<string, unknown>).details;
+
+  if (!details || typeof details !== 'object') {
+    return null;
+  }
+
+  const code = (details as Record<string, unknown>).code;
+  return typeof code === 'string' ? code : null;
+}
+
+function getBackendErrorMessage(errorBody: unknown) {
+  const stage = getBackendErrorStage(errorBody);
+  const code = getBackendErrorCode(errorBody);
+
+  if (stage === 'missing_openai_key') {
+    return 'missing_openai_key';
+  }
+
+  if (code === 'insufficient_quota') {
+    return 'openai_insufficient_quota';
+  }
+
+  return stage ?? 'Request failed';
+}
+
+function getDetectionFailureMessage(error: unknown) {
+  if (!(error instanceof Error)) {
+    return 'Detection had trouble with that image. Try a brighter photo, face labels upward, or add missing ingredients manually below.';
+  }
+
+  if (error.message === 'missing_openai_key') {
+    return 'The Supabase backend is missing its OpenAI API key. Run .\\app-set-openai-key.cmd once, then try again.';
+  }
+
+  if (error.message === 'openai_insufficient_quota') {
+    return 'OpenAI rejected the request because the API account has no quota or billing credit. Add API billing/credits in the OpenAI Platform, then try again.';
+  }
+
+  if (error.message === 'Image is too large for direct detection') {
+    return 'That image is too large to send directly. Try taking a fresh photo in the app or upload a smaller image.';
+  }
+
+  return 'Detection had trouble with that image. Try a brighter photo, face labels upward, or add missing ingredients manually below.';
+}
+
+function getRecipeFailureMessage(error: unknown) {
+  if (!(error instanceof Error)) {
+    return 'Please try again in a moment.';
+  }
+
+  if (error.message === 'missing_openai_key') {
+    return 'The Supabase backend is missing its OpenAI API key. Run .\\app-set-openai-key.cmd once, then try again.';
+  }
+
+  if (error.message === 'openai_insufficient_quota') {
+    return 'OpenAI rejected the request because the API account has no quota or billing credit. Add API billing/credits in the OpenAI Platform, then try again.';
+  }
+
+  return 'Please try again in a moment.';
+}
+
