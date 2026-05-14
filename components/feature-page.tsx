@@ -80,3 +80,84 @@ function ActionButton({ action, variant }: { action: FeatureAction; variant: 'pr
   );
 }
 
+export function FeaturePage({ content }: { content: FeaturePageContent }) {
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          <View style={styles.hero}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroCopy}>
+                <Text style={styles.eyebrow}>{content.eyebrow}</Text>
+                <Text style={styles.title}>{content.title}</Text>
+              </View>
+              <View style={styles.heroIcon}>
+                <Ionicons name={content.icon} size={28} color={BRAND_ORANGE} />
+              </View>
+            </View>
+            <Text style={styles.subtitle}>{content.subtitle}</Text>
+
+            {content.stats?.length ? (
+              <View style={styles.statRail}>
+                {content.stats.map((stat, index) => (
+                  <View key={stat.label} style={styles.statCell}>
+                    {index > 0 ? <View style={styles.statDivider} /> : null}
+                    <Text style={styles.statValue}>{stat.value}</Text>
+                    <Text style={styles.statLabel}>{stat.label}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+
+          {content.primaryAction || content.secondaryAction ? (
+            <View style={styles.actionRow}>
+              {content.primaryAction ? (
+                <View style={styles.actionSlot}>
+                  <ActionButton action={content.primaryAction} variant="primary" />
+                </View>
+              ) : null}
+              {content.secondaryAction ? (
+                <View style={styles.actionSlot}>
+                  <ActionButton action={content.secondaryAction} variant="secondary" />
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {content.sections.map((section) => (
+            <View key={section.title} style={styles.section}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              {section.description ? <Text style={styles.sectionDescription}>{section.description}</Text> : null}
+
+              <View style={styles.cardStack}>
+                {section.items.map((item) => {
+                  const toneColor = getToneColor(item.tone);
+
+                  return (
+                    <View key={`${section.title}-${item.title}`} style={styles.card}>
+                      <View style={[styles.itemIcon, { backgroundColor: `${toneColor}1A` }]}>
+                        <Ionicons name={item.icon} size={21} color={toneColor} />
+                      </View>
+                      <View style={styles.itemCopy}>
+                        <View style={styles.itemTitleRow}>
+                          <Text style={styles.itemTitle}>{item.title}</Text>
+                          {item.meta ? <Text style={[styles.itemMeta, { color: toneColor }]}>{item.meta}</Text> : null}
+                        </View>
+                        {item.detail ? <Text style={styles.itemDetail}>{item.detail}</Text> : null}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
