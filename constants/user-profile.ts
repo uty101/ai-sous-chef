@@ -204,3 +204,51 @@ export const MEAL_TYPE_OPTIONS: { value: MealType; label: string }[] = [
 ];
 
 // Builds a compact AI prompt string from a user profile
+export function buildProfilePrompt(profile: UserProfile): string {
+  const parts: string[] = [];
+
+  if (profile.cookingLevel) {
+    const label = COOKING_LEVEL_OPTIONS.find(o => o.value === profile.cookingLevel)?.label;
+    parts.push(`Cooking level: ${label}`);
+  }
+  if (profile.dailyTimeAvailable) {
+    parts.push(`Max daily cooking time: ${profile.dailyTimeAvailable} min`);
+  }
+  if (profile.householdSize) {
+    parts.push(`Cooking for: ${profile.householdSize === 5 ? '5+' : profile.householdSize} people${profile.includesKids ? ' (including children)' : ''}`);
+  }
+  if (profile.dietaryPreferences.length && !profile.dietaryPreferences.includes('no_preference')) {
+    parts.push(`Diet: ${profile.dietaryPreferences.join(', ')}`);
+  }
+  if (profile.allergies.length) {
+    const labels = profile.allergies.map(a => ALLERGY_OPTIONS.find(o => o.value === a)?.label ?? a);
+    parts.push(`Allergies: ${labels.join(', ')}`);
+  }
+  if (profile.otherAllergies.length) {
+    parts.push(`Other allergies: ${profile.otherAllergies.join(', ')}`);
+  }
+  if (profile.dislikedIngredients.length) {
+    parts.push(`Dislikes: ${profile.dislikedIngredients.join(', ')}`);
+  }
+  if (profile.spiceTolerance) {
+    parts.push(`Spice tolerance: ${profile.spiceTolerance}`);
+  }
+  if (profile.kitchenEquipment.length) {
+    const labels = profile.kitchenEquipment.map(e => EQUIPMENT_OPTIONS.find(o => o.value === e)?.label ?? e);
+    parts.push(`Equipment: ${labels.join(', ')}`);
+  }
+  if (profile.weeklyBudget) {
+    const label = BUDGET_OPTIONS.find(o => o.value === profile.weeklyBudget)?.label;
+    parts.push(`Weekly budget: ${label}`);
+  }
+  if (profile.learningGoals.length) {
+    const labels = profile.learningGoals.map(g => LEARNING_GOAL_OPTIONS.find(o => o.value === g)?.label ?? g);
+    parts.push(`Learning goals: ${labels.join(', ')}`);
+  }
+  if (profile.healthGoals.length) {
+    const labels = profile.healthGoals.map(g => HEALTH_GOAL_OPTIONS.find(o => o.value === g)?.label ?? g);
+    parts.push(`Health goals: ${labels.join(', ')}`);
+  }
+
+  return parts.join('. ');
+}
