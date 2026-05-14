@@ -272,3 +272,60 @@ const MEAL_ELEVATIONS: Record<string, ElevationHint[]> = {
   ],
 };
 
+function getMockHistory(): HistoryEntry[] {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const daysBackToMonday = (dayOfWeek + 6) % 7;
+
+  const mockMeals = [
+    { title: 'Garlic Lemon Chicken',  timeMinutes: 22 },
+    { title: 'Broccoli Rice Bowl',    timeMinutes: 25 },
+    { title: 'Tofu Noodle Stir Fry',  timeMinutes: 20 },
+    { title: 'Pasta Arrabiata',       timeMinutes: 18 },
+    { title: 'Protein Egg Scramble',  timeMinutes: 10 },
+  ];
+
+  return Array.from({ length: Math.min(daysBackToMonday, mockMeals.length) }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (daysBackToMonday - i));
+    d.setHours(19, 0, 0, 0);
+    return {
+      id: `mock-hist-${i}`,
+      title: mockMeals[i].title,
+      createdAt: d.toISOString(),
+      timeMinutes: mockMeals[i].timeMinutes,
+    };
+  });
+}
+
+// Score meals by how many ingredients the user already has, then spread
+// them across the upcoming days without repeating consecutively.
+// Skips dates the user has manually overridden.
+function buildAutoWeekPlan(
+  pantry: string[],
+  overrides: Set<string>,
+): Record<string, PlannedMeal> {
+  const pantryLower = pantry.map((p) => p.toLowerCase());
+
+  const ranked = [...MEAL_POOL].sort((a, b) => {
+    const scoreA = a.uses.filter((u) => pantryLower.includes(u.toLowerCase())).length;
+    const scoreB = b.uses.filter((u) => pantryLower.includes(u.toLowerCase())).length;
+    return scoreB - scoreA;
+  });
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const plan: Record<string, PlannedMeal> = {};
+
+  for (let i = 0; i <= DAYS_FORWARD; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const key = d.toDateString();
+    if (!overrides.has(key)) {
+      plan[key] = ranked[i % ranked.length];
+    }
+  }
+
+  return plan;
+}
+
