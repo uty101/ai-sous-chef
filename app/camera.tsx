@@ -89,3 +89,234 @@ async function getFunctionHeaders() {
   };
 }
 
+export default function CameraScreen() {
+  const cameraRef = useRef<CameraView | null>(null);
+  const previewIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isPreviewScanningRef = useRef(false);
+  const { goal } = useLocalSearchParams<{ goal?: string }>();
+  const normalizedGoal = typeof goal === 'string' ? goal : '';
+  const [permission, requestPermission] = useCameraPermissions();
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [isPreviewScanning, setIsPreviewScanning] = useState(false);
+  const [previewIngredients, setPreviewIngredients] = useState<string[]>([]);
+  const [previewMessage, setPreviewMessage] = useState('Point the camera at your ingredients.');
+
+  const liveAssistEnabled = useMemo(() => SUPABASE_ENABLED && Boolean(normalizedGoal), [normalizedGoal]);
+
+  const runPreviewScan = useCallback(async () => {
+    if (!cameraRef.current || !liveAssistEnabled || isPreviewScanningRef.current || !isCameraReady) {
+      return;
+    }
+
+    try {
+      isPreviewScanningRef.current = true;
+      setIsPreviewScanning(true);
+
+      const snapshot = await cameraRef.current.takePictureAsync({
+        quality: 0.25,
+        skipProcessing: true,
+      });
+
+      if (!snapshot?.uri) {
+        return;
+      }
+
+      const imageDataUrl = await localImageToDataUrl(snapshot.uri);
+      const headers = await getFunctionHeaders();
+      const response = await fetch(DETECT_INGREDIENTS_FUNCTION_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          imageUri: imageDataUrl,
+          goal: normalizedGoal,
+          mode: 'preview',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await readErrorBody(response);
+        console.log('Preview detection backend error:', errorBody);
+        throw new Error('Preview request failed');
+      }
+
+      const data = await response.json();
+
+      if (!isDetectionPreviewResponse(data)) {
+        throw new Error('Preview response shape was invalid');
+      }
+
+      const previewPool = [...data.confirmedIngredients, ...data.possibleIngredients];
+      const topIngredients = previewPool
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 4)
+        .map((ingredient) => ingredient.name);
+
+      setPreviewIngredients(topIngredients);
+
+      if (topIngredients.length > 0) {
+        setPreviewMessage(`Live preview sees: ${topIngredients.join(', ')}`);
+      } else {
+        setPreviewMessage('Move closer, reduce glare, or face labels upward for better detection.');
+      }
+    } catch (error) {
+      console.log('Preview scan failed:', error);
+      setPreviewMessage('Live preview is having trouble reading items. Try brighter lighting or less clutter.');
+    } finally {
+      isPreviewScanningRef.current = false;
+      setIsPreviewScanning(false);
+    }
+  }, [isCameraReady, liveAssistEnabled, normalizedGoal]);
+
+  useEffect(() => {
+    if (!permission) {
+      return;
+    }
+
+    if (!permission.granted) {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
+
+  useEffect(() => {
+    if (!liveAssistEnabled || !isCameraReady) {
+      if (!normalizedGoal) {
+        setPreviewMessage('Choose a goal first for live ingredient preview, or just capture a photo.');
+      } else if (!SUPABASE_ENABLED) {
+        setPreviewMessage('Configure Supabase to enable live ingredient preview.');
+      }
+
+      return;
+    }
+
+    runPreviewScan();
+    previewIntervalRef.current = setInterval(() => {
+      runPreviewScan();
+    }, 12000);
+
+    return () => {
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
+        previewIntervalRef.current = null;
+      }
+    };
+  }, [isCameraReady, liveAssistEnabled, normalizedGoal, runPreviewScan]);
+
+  const handleCapture = async () => {
+    if (!cameraRef.current || isCapturing) {
+      return;
+    }
+
+    try {
+      setIsCapturing(true);
+      const result = await cameraRef.current.takePictureAsync({
+        quality: 0.95,
+      });
+
+      if (!result?.uri) {
+        throw new Error('No image captured');
+      }
+
+      router.replace({
+        pathname: '/(tabs)/ai-souschef',
+        params: {
+          capturedImageUri: result.uri,
+          capturedAt: Date.now().toString(),
+        },
+      });
+    } catch (error) {
+      console.log('Capture failed:', error);
+      Alert.alert('Camera error', 'We could not capture that photo. Please try again.');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  if (!permission) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#FF5C35" />
+          <Text style={styles.helperText}>Preparing camera...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centered}>
+          <Text style={styles.title}>Camera Access Needed</Text>
+          <Text style={styles.helperText}>
+            Allow camera access so AI Sous Chef can preview and capture your ingredients.
+          </Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={requestPermission} activeOpacity={0.85}>
+            <Text style={styles.buttonText}>Allow Camera</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()} activeOpacity={0.85}>
+            <Text style={styles.buttonText}>Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      <CameraView
+        ref={cameraRef}
+        style={styles.camera}
+        facing="back"
+        onCameraReady={() => setIsCameraReady(true)}
+      />
+
+      <SafeAreaView style={styles.overlay}>
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()} activeOpacity={0.85}>
+            <Text style={styles.buttonText}>Back</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.previewCard}>
+          <Text style={styles.previewTitle}>Live Ingredient Preview</Text>
+          <Text style={styles.helperText}>{previewMessage}</Text>
+          <View style={styles.chipRow}>
+            {previewIngredients.length > 0 ? (
+              previewIngredients.map((ingredient) => (
+                <View key={ingredient} style={styles.chip}>
+                  <Text style={styles.chipText}>{ingredient}</Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.chipMuted}>
+                <Text style={styles.chipText}>Waiting for recognizable items</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.bottomPanel}>
+          <Text style={styles.captureHint}>
+            Spread items out, keep labels visible, and hold steady before capturing.
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.captureButton, isCapturing && styles.captureButtonDisabled]}
+            onPress={handleCapture}
+            disabled={isCapturing}
+            activeOpacity={0.85}>
+            {isCapturing ? <ActivityIndicator color="#1C1F2E" /> : <View style={styles.captureInner} />}
+          </TouchableOpacity>
+
+          {isPreviewScanning ? (
+            <Text style={styles.scanStatus}>Refreshing live preview...</Text>
+          ) : (
+            <Text style={styles.scanStatus}>Preview refreshes about every 12 seconds</Text>
+          )}
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
