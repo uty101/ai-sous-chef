@@ -188,3 +188,101 @@ const RECENT_RECIPES: MealDetail[] = [
   },
 ];
 
+function timeAgo(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return `${Math.floor(diffDays / 7)}wk ago`;
+}
+
+function MealSheet({ meal, onClose }: { meal: MealDetail; onClose: () => void }) {
+  const units = useUnits();
+  const sheetY = useRef(new Animated.Value(0)).current;
+  const dismissRef = useRef<() => void>(() => {});
+  const dismiss = () => {
+    Animated.timing(sheetY, { toValue: 900, duration: 240, useNativeDriver: true }).start(() => onClose());
+  };
+  dismissRef.current = dismiss;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 5,
+      onPanResponderMove: (_, gs) => {
+        if (gs.dy > 0) sheetY.setValue(gs.dy);
+      },
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dy > 120 || gs.vy > 0.5) {
+          dismissRef.current();
+        } else {
+          Animated.spring(sheetY, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
+
+  return (
+    <Animated.View style={{ flex: 1, transform: [{ translateY: sheetY }] }}>
+      <SafeAreaView style={sheet.container}>
+        <View style={sheet.handleArea} {...panResponder.panHandlers}>
+          <View style={sheet.handle} />
+        </View>
+        <View style={sheet.header}>
+          <View style={[sheet.goalPill, { backgroundColor: meal.accent }]}>
+            <Text style={sheet.goalPillText}>{meal.timeMinutes} min</Text>
+          </View>
+          <TouchableOpacity style={sheet.closeBtn} onPress={dismiss} activeOpacity={0.8}>
+            <Ionicons name="close" size={20} color={DARK} />
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={sheet.scrollContent}
+          showsVerticalScrollIndicator={false}>
+          <Text style={sheet.title}>{meal.title}</Text>
+          {meal.createdAt ? (
+            <Text style={[sheet.meta, { marginBottom: 12 }]}>{timeAgo(meal.createdAt)}</Text>
+          ) : null}
+          <Text style={sheet.description}>{meal.description}</Text>
+          <View style={sheet.divider} />
+          <Text style={sheet.sectionHead}>Ingredients</Text>
+          {meal.ingredients.map((ing, i) => (
+            <View key={i} style={sheet.listRow}>
+              <Text style={[sheet.bullet, { color: meal.accent }]}>{'•'}</Text>
+              <Text style={sheet.listText}>{convertText(ing, units)}</Text>
+            </View>
+          ))}
+          <View style={sheet.divider} />
+          <Text style={sheet.sectionHead}>Steps</Text>
+          {meal.steps.map((step, i) => (
+            <View key={i} style={sheet.listRow}>
+              <Text style={[sheet.stepNum, { color: meal.accent }]}>{i + 1}.</Text>
+              <Text style={sheet.listText}>{convertText(step, units)}</Text>
+            </View>
+          ))}
+          <View style={sheet.divider} />
+          <Text style={sheet.sectionHead}>Nutritional Info</Text>
+          <View style={sheet.macroGrid}>
+            {[
+              { label: 'Calories', value: `${meal.nutrition.calories}` },
+              { label: 'Protein', value: `${meal.nutrition.protein}g` },
+              { label: 'Carbs', value: `${meal.nutrition.carbs}g` },
+              { label: 'Fats', value: `${meal.nutrition.fats}g` },
+            ].map((m, i, arr) => (
+              <View key={m.label} style={{ flexDirection: 'row', flex: 1 }}>
+                <View style={sheet.macroCell}>
+                  <Text style={[sheet.macroValue, { color: meal.accent }]}>{m.value}</Text>
+                  <Text style={sheet.macroLabel}>{m.label}</Text>
+                </View>
+                {i < arr.length - 1 && <View style={sheet.macroDivider} />}
+              </View>
+            ))}
+          </View>
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </Animated.View>
+  );
+}
+
