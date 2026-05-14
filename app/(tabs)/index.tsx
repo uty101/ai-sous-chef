@@ -967,3 +967,44 @@ function MealSheet({ meal, onClose, isFav, onToggleFav }: { meal: MealDetail; on
   );
 }
 
+function TrendCardItem({ t, onPress }: { t: MealDetail; onPress: () => void }) {
+  const [showDesc, setShowDesc] = useState(false);
+  return (
+    <TouchableOpacity
+      style={[styles.trendCard, { backgroundColor: t.bg }]}
+      onPress={onPress}
+      activeOpacity={0.88}>
+      <View style={styles.trendTop}>
+        <View style={[styles.platformBadge, { backgroundColor: t.platform === 'tiktok' ? DARK : '#E1306C' }]}>
+          <Ionicons name={t.platform === 'tiktok' ? 'musical-notes' : 'logo-instagram'} size={11} color="#FFF" />
+          <Text style={styles.platformLabel}>{t.platform === 'tiktok' ? 'TikTok' : 'Instagram'}</Text>
+        </View>
+        <Text style={[styles.trendViews, { color: t.accent }]}>{t.views} views</Text>
+      </View>
+      <View style={styles.trendTitleRow}>
+        <Text style={[styles.trendTitle, { color: t.accent, textShadowColor: DARK }]} numberOfLines={2}>{t.title}</Text>
+        <TouchableOpacity
+          onPress={() => setShowDesc(v => !v)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.trendInfoBtn}>
+          <Ionicons
+            name={showDesc ? 'information-circle' : 'information-circle-outline'}
+            size={16}
+            color={t.accent}
+          />
+        </TouchableOpacity>
+      </View>
+      {showDesc && (
+        <View style={[styles.trendDescBubble, { backgroundColor: t.accent + '18', borderColor: t.accent + '30' }]}>
+          <Text style={styles.trendDescText}>{t.description}</Text>
+        </View>
+      )}
+      <View style={styles.timeBadge}>
+        <Ionicons name="time-outline" size={11} color={MUTED} />
+        <Text style={styles.timeBadgeText}>{t.timeMinutes} min</Text>
+      </View>
+      {t.cuisine ? <View style={[styles.cuisineChip, { alignSelf: 'flex-end' }]}><Text style={styles.cuisineChipText}>{t.cuisine}</Text></View> : null}
+    </TouchableOpacity>
+  );
+}
+
