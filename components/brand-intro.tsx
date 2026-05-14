@@ -100,3 +100,103 @@ export function BrandIntro({ onComplete }: BrandIntroProps) {
   );
 }
 
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#1C1F2E',
+  },
+  screen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1C1F2E',
+    paddingHorizontal: 24,
+  },
+  wordmarkStage: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wordmark: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  brandText: {
+    ...brandType,
+    color: '#FFFFFF',
+    fontSize: 54,
+    lineHeight: 62,
+    textTransform: 'uppercase',
+    fontStyle: 'italic',
+    textShadowColor: '#FF5C35',
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 0,
+  },
+  brandTextSecondLine: {
+    marginTop: -4,
+  },
+  iSlot: {
+    width: 20,
+    height: 62,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginLeft: -2,
+    marginRight: 2,
+  },
+  iStem: {
+    width: 13,
+    height: 39,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FF5C35',
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    shadowOffset: { width: 3, height: 3 },
+    elevation: 2,
+  },
+  chefHat: {
+    position: 'absolute',
+    top: -12,
+    width: 44,
+    height: 32,
+    alignItems: 'center',
+  },
+  hatPuff: {
+    position: 'absolute',
+    backgroundColor: '#FFBA35',
+    borderColor: '#1C1F2E',
+    borderWidth: 2,
+  },
+  hatPuffLeft: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    left: 2,
+    top: 7,
+  },
+  hatPuffCenter: {
+    width: 25,
+    height: 25,
+    borderRadius: 13,
+    top: 0,
+  },
+  hatPuffRight: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    right: 2,
+    top: 7,
+  },
+  hatBand: {
+    position: 'absolute',
+    bottom: 0,
+    width: 38,
+    height: 12,
+    borderRadius: 7,
+    backgroundColor: '#FFBA35',
+    borderColor: '#1C1F2E',
+    borderWidth: 2,
+  },
+});
+
+
