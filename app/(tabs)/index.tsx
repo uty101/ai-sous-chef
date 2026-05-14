@@ -770,3 +770,200 @@ function ingredientName(ing: string): string | null {
   return cleaned ? cleaned.replace(/^\w/, c => c.toUpperCase()) : null;
 }
 
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.sectionTitle}>{children}</Text>;
+}
+
+function MacroRow({ calories, protein, carbs, fats, accent }: {
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fats: number | null;
+  accent: string;
+}) {
+  const val = (v: number | null, unit?: string) =>
+    v != null ? `${v}${unit ?? ''}` : '—';
+  return (
+    <View style={styles.macroRow}>
+      <View style={styles.macroItem}>
+        <Text style={[styles.macroValue, { color: accent }]}>{val(calories)}</Text>
+        <Text style={styles.macroLabel}>cal</Text>
+      </View>
+      <View style={styles.macroDivider} />
+      <View style={styles.macroItem}>
+        <Text style={[styles.macroValue, { color: accent }]}>{val(protein, 'g')}</Text>
+        <Text style={styles.macroLabel}>protein</Text>
+      </View>
+      <View style={styles.macroDivider} />
+      <View style={styles.macroItem}>
+        <Text style={[styles.macroValue, { color: accent }]}>{val(carbs, 'g')}</Text>
+        <Text style={styles.macroLabel}>carbs</Text>
+      </View>
+      <View style={styles.macroDivider} />
+      <View style={styles.macroItem}>
+        <Text style={[styles.macroValue, { color: accent }]}>{val(fats, 'g')}</Text>
+        <Text style={styles.macroLabel}>fats</Text>
+      </View>
+    </View>
+  );
+}
+
+const FAVORITES_KEY = 'saved_favorites';
+const SAVED_RECIPES_DATA_KEY = 'saved_recipes_data';
+
+function MealSheet({ meal, onClose, isFav, onToggleFav }: { meal: MealDetail; onClose: () => void; isFav: boolean; onToggleFav: () => void }) {
+  const units = useUnits();
+  const [displaySteps, setDisplaySteps] = useState<string[]>(meal.steps);
+  const [stepsLoading, setStepsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const vibe = meal.goal === 'Quick' ? 'Quick' : deriveVibe(meal.timeMinutes);
+    personaliseSteps({ title: meal.title, ingredients: meal.ingredients, steps: meal.steps, timeMinutes: meal.timeMinutes }, vibe)
+      .then(steps => { if (!cancelled) { setDisplaySteps(steps); setStepsLoading(false); } })
+      .catch(() => { if (!cancelled) setStepsLoading(false); });
+    return () => { cancelled = true; };
+  }, [meal.title]);
+
+  const goalLabel = meal.goal
+    ? meal.goal.split(' ').pop()!
+    : null;
+
+  const pillLabel = goalLabel
+    ? goalLabel
+    : meal.platform === 'tiktok'
+    ? 'TikTok'
+    : meal.platform === 'instagram'
+    ? 'Instagram'
+    : null;
+
+  const pillBg = meal.platform === 'tiktok'
+    ? DARK
+    : meal.platform === 'instagram'
+    ? '#E1306C'
+    : meal.accent;
+
+  return (
+    <View style={styles.sheetOverlay}>
+      <View style={[styles.sheetPanel, { backgroundColor: meal.bg }]}>
+      {/* Header — tags + close button on same row */}
+      <View style={styles.sheetHeader}>
+        <View style={styles.sheetHeaderTags}>
+          {pillLabel ? (
+            <View style={[styles.sheetGoalPill, { backgroundColor: pillBg }]}>
+              {(meal.platform === 'tiktok' || meal.platform === 'instagram') && (
+                <Ionicons
+                  name={meal.platform === 'tiktok' ? 'musical-notes' : 'logo-instagram'}
+                  size={11}
+                  color="#FFF"
+                  style={{ marginRight: 4 }}
+                />
+              )}
+              <Text style={styles.sheetGoalPillText}>{pillLabel}</Text>
+            </View>
+          ) : null}
+          <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+            <Ionicons name="time-outline" size={13} color={MUTED} />
+            <Text style={styles.sheetTimeBadgeText}>{meal.timeMinutes} min</Text>
+          </View>
+          {meal.cuisine ? (
+            <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+              <Text style={styles.sheetTimeBadgeText}>{meal.cuisine}</Text>
+            </View>
+          ) : null}
+          {meal.views ? (
+            <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+              <Text style={styles.sheetTimeBadgeText}>{meal.views} views</Text>
+            </View>
+          ) : null}
+          {meal.createdAt ? (
+            <View style={[styles.sheetTimeBadge, { backgroundColor: 'rgba(255,255,255,0.65)' }]}>
+              <Text style={styles.sheetTimeBadgeText}>{timeAgo(meal.createdAt)}</Text>
+            </View>
+          ) : null}
+        </View>
+        <TouchableOpacity style={[styles.sheetCloseBtn, { backgroundColor: 'rgba(255,255,255,0.7)' }]} onPress={onClose} activeOpacity={0.8}>
+          <Ionicons name="close" size={20} color={meal.accent} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.sheetScrollContent}
+        showsVerticalScrollIndicator={false}>
+
+        {/* Title */}
+        <View style={styles.sheetTitleRow}>
+          <Text style={[styles.sheetTitle, { color: meal.accent, textShadowColor: DARK, textShadowOffset: { width: 0.25, height: 0.25 }, textShadowRadius: 0 }]}>{meal.title}</Text>
+          <TouchableOpacity onPress={onToggleFav} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+            <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={22} color={isFav ? '#FF5C35' : meal.accent} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Description */}
+        <Text style={styles.sheetDescription} numberOfLines={1}>{meal.description}</Text>
+
+        {/* Divider */}
+        <View style={[styles.sheetDivider, { backgroundColor: meal.accent + '30' }]} />
+
+        {/* Ingredients */}
+        <Text style={[styles.sheetSectionHead, { color: meal.accent }]}>Ingredients</Text>
+        {meal.ingredients.map((ing, i) => (
+          <View key={i} style={styles.sheetListRow}>
+            <Text style={[styles.sheetBullet, { color: meal.accent }]}>{'•'}</Text>
+            <Text style={styles.sheetListText}>{convertText(ing, units)}</Text>
+          </View>
+        ))}
+
+        {/* Divider */}
+        <View style={[styles.sheetDivider, { backgroundColor: meal.accent + '30' }]} />
+
+        {/* Steps */}
+        <Text style={[styles.sheetSectionHead, { color: meal.accent }]}>Steps</Text>
+        {stepsLoading ? (
+          <ActivityIndicator size="small" color={meal.accent} style={{ marginVertical: 12 }} />
+        ) : (
+          displaySteps.map((step, i) => (
+            <View key={i} style={styles.sheetListRow}>
+              <View style={[styles.sheetStepCircle, { backgroundColor: meal.accent }]}>
+                <Text style={styles.sheetStepCircleText}>{i + 1}</Text>
+              </View>
+              <Text style={styles.sheetListText}>{convertText(step, units)}</Text>
+            </View>
+          ))
+        )}
+
+        {/* Divider */}
+        <View style={[styles.sheetDivider, { backgroundColor: meal.accent + '30' }]} />
+
+        {/* Nutrition */}
+        <Text style={[styles.sheetSectionHead, { color: meal.accent }]}>Nutritional Info</Text>
+        <View style={[styles.sheetMacroGrid, { backgroundColor: 'rgba(255,255,255,0.65)', borderColor: meal.accent + '30' }]}>
+          <View style={styles.sheetMacroCell}>
+            <Text style={[styles.sheetMacroValue, { color: meal.accent }]}>{meal.nutrition.calories}</Text>
+            <Text style={styles.sheetMacroLabel}>Calories</Text>
+          </View>
+          <View style={[styles.sheetMacroDivider, { backgroundColor: meal.accent + '30' }]} />
+          <View style={styles.sheetMacroCell}>
+            <Text style={[styles.sheetMacroValue, { color: meal.accent }]}>{meal.nutrition.protein}g</Text>
+            <Text style={styles.sheetMacroLabel}>Protein</Text>
+          </View>
+          <View style={[styles.sheetMacroDivider, { backgroundColor: meal.accent + '30' }]} />
+          <View style={styles.sheetMacroCell}>
+            <Text style={[styles.sheetMacroValue, { color: meal.accent }]}>{meal.nutrition.carbs}g</Text>
+            <Text style={styles.sheetMacroLabel}>Carbs</Text>
+          </View>
+          <View style={[styles.sheetMacroDivider, { backgroundColor: meal.accent + '30' }]} />
+          <View style={styles.sheetMacroCell}>
+            <Text style={[styles.sheetMacroValue, { color: meal.accent }]}>{meal.nutrition.fats}g</Text>
+            <Text style={styles.sheetMacroLabel}>Fats</Text>
+          </View>
+        </View>
+
+        {/* Bottom padding */}
+        <View style={{ height: 40 }} />
+      </ScrollView>
+      </View>
+    </View>
+  );
+}
+
