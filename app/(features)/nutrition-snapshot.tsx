@@ -116,7 +116,10 @@ export default function NutritionSnapshotScreen() {
             </Text>
           </View>
 
-          <Text style={styles.sectionLabel}>What's your main goal?</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>What's your main goal?</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.goalGrid}>
             {HEALTH_GOALS.map((g) => {
               const active = goals.healthGoal === g.id;
@@ -138,7 +141,10 @@ export default function NutritionSnapshotScreen() {
             })}
           </View>
 
-          <Text style={styles.sectionLabel}>Daily calorie target (kcal)</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Daily calorie target (kcal)</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.pillRow}>
             {CALORIE_OPTIONS.map((opt) => {
               const active = goals.calorieGoal === opt.value;
@@ -156,7 +162,10 @@ export default function NutritionSnapshotScreen() {
             })}
           </View>
 
-          <Text style={styles.sectionLabel}>Protein preference</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Protein preference</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.optionList}>
             {PROTEIN_OPTIONS.map((opt) => {
               const active = goals.proteinLevel === opt.id;
@@ -245,13 +254,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E3EA',
+  },
   sectionLabel: {
     ...brandType,
     color: PRIMARY,
-    fontSize: 13,
+    fontSize: 16,
     textTransform: 'uppercase',
-    marginTop: 8,
-    marginLeft: 2,
+    textShadowColor: DARK,
+    textShadowOffset: { width: 0.25, height: 0.25 },
+    textShadowRadius: 0,
   },
   goalGrid: {
     flexDirection: 'row',
