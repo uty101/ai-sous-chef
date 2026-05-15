@@ -21,7 +21,6 @@ const BG = '#FFF8F0';
 const SURFACE = '#FFFFFF';
 const DARK = '#1C1F2E';
 const GOLD = '#FFBA35';
-const MUTED = '#8E93A8';
 
 const SETTINGS_KEY = '@sous_chef_settings';
 
@@ -68,6 +67,7 @@ export default function SettingsScreen() {
     setUnits(next.units);
     setDarkMode(next.darkMode);
     await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+
   };
 
   const confirmClear = (label: string, key: string) => {
@@ -102,7 +102,10 @@ export default function SettingsScreen() {
         <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
           {/* App */}
-          <Text style={styles.sectionLabel}>App</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>App</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.card}>
             <View style={styles.row}>
               <View style={styles.rowIcon}>
@@ -134,11 +137,14 @@ export default function SettingsScreen() {
           </View>
 
           {/* Cooking */}
-          <Text style={styles.sectionLabel}>Cooking</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Cooking</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.card}>
             <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: 10 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={[styles.rowIcon, { backgroundColor: '#FFF0D8' }]}>
+                <View style={[styles.rowIcon, { backgroundColor: '#FFD98A' }]}>
                   <Ionicons name="people-outline" size={20} color={GOLD} />
                 </View>
                 <View style={styles.rowBody}>
@@ -165,7 +171,7 @@ export default function SettingsScreen() {
 
             <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: 10 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={[styles.rowIcon, { backgroundColor: '#F0EBFF' }]}>
+                <View style={[styles.rowIcon, { backgroundColor: '#C4B5FD' }]}>
                   <Ionicons name="ribbon-outline" size={20} color="#7C3AED" />
                 </View>
                 <View style={styles.rowBody}>
@@ -190,11 +196,14 @@ export default function SettingsScreen() {
           </View>
 
           {/* Notifications */}
-          <Text style={styles.sectionLabel}>Notifications</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Notifications</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.card}>
             <View style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: '#FFF0D8' }]}>
-                <Ionicons name="notifications-outline" size={20} color={GOLD} />
+              <View style={styles.rowIcon}>
+                <Ionicons name="notifications-outline" size={20} color={PRIMARY} />
               </View>
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle}>Meal Reminders</Text>
@@ -203,18 +212,21 @@ export default function SettingsScreen() {
               <Switch
                 value={settings.notifications}
                 onValueChange={(v) => save({ ...settings, notifications: v })}
-                trackColor={{ false: '#E2E3EA', true: `${PRIMARY}88` }}
+                trackColor={{ false: '#E2C4A8', true: `${PRIMARY}88` }}
                 thumbColor={settings.notifications ? PRIMARY : SURFACE}
               />
             </View>
           </View>
 
           {/* Appearance */}
-          <Text style={styles.sectionLabel}>Appearance</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Appearance</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.card}>
             <View style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: '#1C1F2E' }]}>
-                <Ionicons name="moon-outline" size={20} color="#A78BFA" />
+              <View style={[styles.rowIcon, { backgroundColor: '#C4B5FD' }]}>
+                <Ionicons name="moon-outline" size={20} color="#7C3AED" />
               </View>
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle}>Dark Mode</Text>
@@ -223,27 +235,30 @@ export default function SettingsScreen() {
               <Switch
                 value={settings.darkMode}
                 onValueChange={(v) => save({ ...settings, darkMode: v })}
-                trackColor={{ false: '#E2E3EA', true: '#7C3AED88' }}
+                trackColor={{ false: '#E2C4A8', true: '#7C3AED88' }}
                 thumbColor={settings.darkMode ? '#7C3AED' : SURFACE}
               />
             </View>
           </View>
 
           {/* Data */}
-          <Text style={styles.sectionLabel}>Data</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Data</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.row}
               onPress={() => confirmClear('Pantry', '@sous_chef_pantry')}
               activeOpacity={0.8}>
-              <View style={[styles.rowIcon, { backgroundColor: '#FFF0D8' }]}>
+              <View style={[styles.rowIcon, { backgroundColor: '#FFD98A' }]}>
                 <Ionicons name="basket-outline" size={20} color={GOLD} />
               </View>
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle}>Clear Pantry</Text>
                 <Text style={styles.rowMeta}>Remove all saved ingredients</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={MUTED} />
+              <Ionicons name="chevron-forward" size={16} color="#7A6E5F" />
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -252,14 +267,14 @@ export default function SettingsScreen() {
               style={styles.row}
               onPress={() => confirmClear('Recipe History', '@sous_chef_history')}
               activeOpacity={0.8}>
-              <View style={[styles.rowIcon, { backgroundColor: '#F0EBFF' }]}>
+              <View style={[styles.rowIcon, { backgroundColor: '#C4B5FD' }]}>
                 <Ionicons name="time-outline" size={20} color="#7C3AED" />
               </View>
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle}>Clear Recipe History</Text>
                 <Text style={styles.rowMeta}>Remove all recently cooked meals</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={MUTED} />
+              <Ionicons name="chevron-forward" size={16} color="#7A6E5F" />
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -284,15 +299,18 @@ export default function SettingsScreen() {
                 <Text style={[styles.rowTitle, { color: PRIMARY }]}>Clear All Data</Text>
                 <Text style={styles.rowMeta}>Reset everything. Cannot be undone.</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={MUTED} />
+              <Ionicons name="chevron-forward" size={16} color="#7A6E5F" />
             </TouchableOpacity>
           </View>
 
           {/* About */}
-          <Text style={styles.sectionLabel}>About</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>About</Text>
+            <View style={styles.sectionLine} />
+          </View>
           <View style={styles.card}>
             <View style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: '#E8F5E9' }]}>
+              <View style={[styles.rowIcon, { backgroundColor: '#A7DDB8' }]}>
                 <Ionicons name="information-circle-outline" size={20} color="#2E7D32" />
               </View>
               <View style={styles.rowBody}>
@@ -304,27 +322,27 @@ export default function SettingsScreen() {
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.row} activeOpacity={0.8}>
-              <View style={[styles.rowIcon, { backgroundColor: '#E3F2FD' }]}>
+              <View style={[styles.rowIcon, { backgroundColor: '#90C4E8' }]}>
                 <Ionicons name="shield-checkmark-outline" size={20} color="#1565C0" />
               </View>
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle}>Privacy Policy</Text>
                 <Text style={styles.rowMeta}>How we handle your data</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={MUTED} />
+              <Ionicons name="chevron-forward" size={16} color="#7A6E5F" />
             </TouchableOpacity>
 
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.row} activeOpacity={0.8}>
-              <View style={[styles.rowIcon, { backgroundColor: '#FFF0D8' }]}>
+              <View style={[styles.rowIcon, { backgroundColor: '#FFD98A' }]}>
                 <Ionicons name="star-outline" size={20} color={GOLD} />
               </View>
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle}>Rate AI Sous Chef</Text>
                 <Text style={styles.rowMeta}>Enjoying the app? Let us know.</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={MUTED} />
+              <Ionicons name="chevron-forward" size={16} color="#7A6E5F" />
             </TouchableOpacity>
           </View>
 
@@ -377,20 +395,32 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     gap: 8,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E3EA',
+  },
   sectionLabel: {
     ...brandType,
     color: PRIMARY,
-    fontSize: 13,
+    fontSize: 16,
     textTransform: 'uppercase',
-    marginTop: 16,
-    marginBottom: 4,
-    marginLeft: 4,
+    textShadowColor: DARK,
+    textShadowOffset: { width: 0.25, height: 0.25 },
+    textShadowRadius: 0,
   },
   card: {
-    backgroundColor: SURFACE,
+    backgroundColor: '#FFE4CE',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#E2E3EA',
+    borderColor: '#F0C8A8',
     overflow: 'hidden',
   },
   row: {
@@ -404,7 +434,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: '#FFE8E2',
+    backgroundColor: '#FFCDB8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -415,11 +445,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textTransform: 'uppercase',
   },
-  rowMeta: { color: MUTED, fontSize: 12, marginTop: 2 },
-  divider: { height: 1, backgroundColor: '#F0EBE3', marginHorizontal: 14 },
+  rowMeta: { color: '#7A6E5F', fontSize: 12, marginTop: 2 },
+  divider: { height: 1, backgroundColor: '#F0C8A8', marginHorizontal: 14 },
   segmented: {
     flexDirection: 'row',
-    backgroundColor: '#F0EBE3',
+    backgroundColor: 'rgba(0,0,0,0.14)',
     borderRadius: 10,
     padding: 2,
   },
@@ -428,8 +458,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
   },
-  segActive: { backgroundColor: SURFACE },
-  segText: { color: MUTED, fontSize: 12, fontWeight: '700' },
+  segActive: { backgroundColor: '#FFFFFF' },
+  segText: { color: '#7A6E5F', fontSize: 12, fontWeight: '700' },
   segTextActive: { color: DARK },
   pillRow: {
     flexDirection: 'row',
@@ -440,12 +470,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F0EBE3',
+    backgroundColor: 'rgba(0,0,0,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pillActive: { backgroundColor: PRIMARY },
-  pillText: { color: MUTED, fontSize: 14, fontWeight: '700' },
+  pillText: { color: '#7A6E5F', fontSize: 14, fontWeight: '700' },
   pillTextActive: { color: SURFACE },
   signOutBtn: {
     marginTop: 24,
