@@ -113,18 +113,15 @@ export function MePanel({ onClose }: { onClose: () => void }) {
       <Animated.View
         style={[styles.panel, { paddingTop: insets.top, transform: [{ translateY: slideY }] }]}>
 
-        {/* Header row */}
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>AI</Text>
+          <View style={styles.headerTopRow}>
+            <Text style={styles.eyebrow}>Preferences & settings</Text>
+            <TouchableOpacity style={styles.closeBtn} onPress={dismiss} activeOpacity={0.8}>
+              <Ionicons name="close" size={20} color={GOLD} />
+            </TouchableOpacity>
           </View>
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle}>Sous Chef Profile</Text>
-            <Text style={styles.headerSub}>Preferences & settings</Text>
-          </View>
-          <TouchableOpacity style={styles.closeBtn} onPress={dismiss} activeOpacity={0.8}>
-            <Ionicons name="close" size={20} color={DARK} />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Sous Chef</Text>
         </View>
 
         {/* Section list */}
@@ -168,56 +165,44 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    backgroundColor: SURFACE,
+    backgroundColor: DARK,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 18,
+    shadowOpacity: 0.28,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 20,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    gap: 8,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    gap: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBF0',
+    justifyContent: 'space-between',
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 18,
-    backgroundColor: '#FFE1D8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    ...brandType,
-    color: PRIMARY,
-    fontSize: 16,
-  },
-  headerCopy: { flex: 1 },
-  headerTitle: {
-    ...brandType,
-    color: DARK,
-    fontSize: 15,
+  eyebrow: {
+    color: GOLD,
+    fontSize: 12,
+    fontWeight: '800',
     textTransform: 'uppercase',
   },
-  headerSub: {
-    color: MUTED,
-    fontSize: 12,
-    marginTop: 3,
+  headerTitle: {
+    ...brandType,
+    color: SURFACE,
+    fontSize: 28,
+    lineHeight: 34,
+    textTransform: 'uppercase',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 1.5, height: 1.5 },
+    textShadowRadius: 0,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F0EBE3',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 4,
   },
   list: {
     paddingHorizontal: 16,
@@ -227,7 +212,7 @@ const styles = StyleSheet.create({
   row: {
     minHeight: 68,
     backgroundColor: BG,
-    borderRadius: 22,
+    borderRadius: 24,
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderWidth: 1,
