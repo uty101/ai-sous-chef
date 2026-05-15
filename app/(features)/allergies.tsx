@@ -79,6 +79,7 @@ export default function AllergiesScreen() {
           <TouchableOpacity style={styles.heroBackBtn} onPress={() => router.back()} activeOpacity={0.8}>
             <Ionicons name="chevron-back" size={22} color="#FFF" />
           </TouchableOpacity>
+          <Text style={styles.eyebrow}>Safe to eat</Text>
           <Text style={styles.heroTitle}>Allergies</Text>
         </View>
 
@@ -129,25 +130,32 @@ export default function AllergiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: PRIMARY },
+  safeArea: { flex: 1, backgroundColor: DARK },
   screen: { flex: 1, backgroundColor: BG },
   hero: {
-    backgroundColor: PRIMARY,
-    paddingHorizontal: 10,
+    backgroundColor: DARK,
+    paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 16,
+    paddingBottom: 20,
     gap: 8,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   heroBackBtn: {
     padding: 4,
     marginTop: -5,
+  },
+  eyebrow: {
+    color: GOLD,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   heroTitle: {
     ...brandType,
     color: '#FFFFFF',
     fontSize: 24,
     lineHeight: 30,
-    marginTop: 2,
     textTransform: 'uppercase',
     textShadowColor: DARK,
     textShadowOffset: { width: 1.5, height: 1.5 },
