@@ -2,11 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { brandType } from '@/constants/brand';
 import { useMePanel } from '@/contexts/me-panel-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Notifications from 'expo-notifications';
 import { Stack, router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -15,6 +17,32 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const MEAL_REMINDERS = [
+  { hour: 8,  minute: 0,  title: 'Good morning, Chef',  body: 'Start the day right. Your sous chef has breakfast ideas waiting.' },
+  { hour: 12, minute: 30, title: 'Lunchtime sorted?',   body: 'See what you can make with what you have. Quick ideas in the app.' },
+  { hour: 18, minute: 0,  title: "What's for dinner?",  body: "Let your AI sous chef suggest tonight's meal." },
+];
+
+async function scheduleNotifications() {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('meal-reminders', {
+      name: 'Meal Reminders',
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
+  }
+  await Notifications.cancelAllScheduledNotificationsAsync();
+  for (const { hour, minute, title, body } of MEAL_REMINDERS) {
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, sound: true },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+      },
+    });
+  }
+}
 
 const PRIMARY = '#FF5C35';
 const BG = '#FFF8F0';
@@ -63,11 +91,25 @@ export default function SettingsScreen() {
   }, []);
 
   const save = async (next: Settings) => {
+    const prevNotifications = settings.notifications;
     setSettings(next);
     setUnits(next.units);
     setDarkMode(next.darkMode);
     await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
 
+    if (next.notifications && !prevNotifications) {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        const reverted = { ...next, notifications: false };
+        setSettings(reverted);
+        await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(reverted));
+        Alert.alert('Permission needed', 'Enable notifications in your device settings to use meal reminders.');
+        return;
+      }
+      await scheduleNotifications();
+    } else if (!next.notifications && prevNotifications) {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    }
   };
 
   const confirmClear = (label: string, key: string) => {
