@@ -51,27 +51,27 @@ const profileSections = [
 
 export default function MeScreen() {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <View style={styles.hero}>
+        <View style={styles.heroTopRow}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.eyebrow}>Your defaults</Text>
+            <Text style={styles.title}>Me</Text>
+          </View>
+          <View style={styles.heroIcon}>
+            <Ionicons name="person-outline" size={28} color={PRIMARY} />
+          </View>
+        </View>
+        <Text style={styles.subtitle}>
+          Settings, allergies, dislikes, and lightweight nutrition preferences live here.
+        </Text>
+      </View>
+
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          <View style={styles.hero}>
-            <View style={styles.heroTopRow}>
-              <View style={styles.heroCopy}>
-                <Text style={styles.eyebrow}>Your defaults</Text>
-                <Text style={styles.title}>Me</Text>
-              </View>
-              <View style={styles.heroIcon}>
-                <Ionicons name="person-outline" size={28} color={PRIMARY} />
-              </View>
-            </View>
-            <Text style={styles.subtitle}>
-              Settings, allergies, dislikes, and lightweight nutrition preferences live here.
-            </Text>
-          </View>
-
           <View style={styles.profileCard}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>AI</Text>
@@ -107,7 +107,7 @@ export default function MeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: BG },
+  safeArea: { flex: 1, backgroundColor: DARK },
   screen: { flex: 1, backgroundColor: BG },
   container: {
     flexGrow: 1,
@@ -118,10 +118,12 @@ const styles = StyleSheet.create({
   content: { gap: 16 },
   hero: {
     backgroundColor: DARK,
-    borderRadius: 26,
     paddingHorizontal: 20,
-    paddingVertical: 22,
+    paddingTop: 16,
+    paddingBottom: 20,
     gap: 12,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   heroTopRow: {
     flexDirection: 'row',
