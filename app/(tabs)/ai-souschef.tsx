@@ -932,11 +932,12 @@ export default function CookScreen() {
     setShowNutritionFocus(false);
 
     try {
-      const [rawBasket, rawStaples, rawProfile, rawShoppingList, headers] = await Promise.all([
+      const [rawBasket, rawStaples, rawProfile, rawShoppingList, rawSettings, headers] = await Promise.all([
         AsyncStorage.getItem(PANTRY_BASKET_KEY),
         AsyncStorage.getItem(PANTRY_STAPLES_KEY),
         AsyncStorage.getItem(USER_PROFILE_KEY),
         AsyncStorage.getItem(SHOPPING_LIST_KEY),
+        AsyncStorage.getItem('@sous_chef_settings'),
         getFunctionHeaders(),
       ]);
 
@@ -959,6 +960,16 @@ export default function CookScreen() {
         ? ` User is also planning to buy: ${toBuyNames.join(', ')}.`
         : '';
 
+      const appSettings = rawSettings ? JSON.parse(rawSettings) : {};
+      const servings: number = appSettings.servings ?? 2;
+      const skillLevel: string = appSettings.skillLevel ?? 'home_cook';
+      const skillLevelLabel =
+        skillLevel === 'beginner' ? 'beginner — keep instructions simple and avoid complex techniques' :
+        skillLevel === 'advanced' ? 'advanced — include complex restaurant-level techniques if appropriate' :
+        'home cook — standard recipes, moderate complexity';
+      const servingsContext = ` Recipe should serve ${servings} ${servings === 1 ? 'person' : 'people'}.`;
+      const skillContext = ` Cook skill level: ${skillLevelLabel}.`;
+
       const generateOne = async (diet: Diet, _index: number): Promise<{ diet: Diet; recipe: RecipeResult }> => {
         const goal = [
           `Vibe: ${selectedVibe}.`,
@@ -967,6 +978,8 @@ export default function CookScreen() {
           pantryContext,
           shoppingContext,
           profileContext,
+          servingsContext,
+          skillContext,
         ].filter(Boolean).join(' ');
         const response = await fetch(GENERATE_FINAL_MEAL_FUNCTION_URL, {
           method: 'POST',
