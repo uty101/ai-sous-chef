@@ -36,7 +36,7 @@ export default function TabLayout() {
         across all tab screens. Tapping it slides down the Me panel.
       */}
       <TouchableOpacity
-        style={[styles.meBtn, { top: insets.top + 4 }]}
+        style={[styles.meBtn, { top: insets.top + 13 }]}
         onPress={() => openMe()}
         activeOpacity={0.85}>
         <View style={styles.burgerLines}>
@@ -74,11 +74,11 @@ const styles = StyleSheet.create({
     width: 16,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFBA35',
   },
   menuLabel: {
     ...brandType,
-    color: '#FFFFFF',
+    color: '#FFBA35',
     fontSize: 12,
     textTransform: 'uppercase',
   },
