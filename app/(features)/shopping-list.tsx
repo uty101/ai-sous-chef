@@ -122,7 +122,10 @@ export default function ShoppingListScreen() {
 
           {toBuyItems.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>To Buy</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>To Buy</Text>
+                <View style={styles.sectionLine} />
+              </View>
               <View style={styles.cardStack}>
                 {toBuyItems.map((item) => (
                   <View key={item.name} style={styles.itemRow}>
@@ -146,6 +149,7 @@ export default function ShoppingListScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Bought</Text>
+                <View style={styles.sectionLine} />
                 <TouchableOpacity onPress={clearBought} activeOpacity={0.7}>
                   <Text style={styles.clearLabel}>Remove all</Text>
                 </TouchableOpacity>
@@ -265,13 +269,21 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E3EA',
   },
   sectionTitle: {
     ...brandType,
-    color: INK,
-    fontSize: 18,
+    color: BRAND_ORANGE,
+    fontSize: 16,
     textTransform: 'uppercase',
+    textShadowColor: INK,
+    textShadowOffset: { width: 0.25, height: 0.25 },
+    textShadowRadius: 0,
   },
   clearLabel: { color: MUTED, fontSize: 13, fontWeight: '600' },
   cardStack: { gap: 8 },
