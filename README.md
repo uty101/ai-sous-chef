@@ -1,50 +1,131 @@
-# Welcome to your Expo app 👋
+# AI Sous Chef
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile cooking assistant built with Expo and React Native. Photograph what is in your fridge, and AI Sous Chef identifies the ingredients, then writes recipes to match your diet, skill level and taste profile.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Ingredient scanning.** Take a photo or pick one from your library. A vision model lists what it sees, with confidence scores; likely items are added automatically and uncertain ones are offered as suggestions.
+- **Recipe generation.** Choose a vibe (Quick, Easy, Everyday, Gourmet or Michelin) and get a recipe for each of five nutrition focuses at once. Switching between them costs no extra request.
+- **Personalised steps.** Method steps are rewritten for your cooking level and kitchen, then cached on the device for 7 days.
+- **Pantry and shopping list.** Keep a basket of what you have and a list of staples, get quick meal ideas from leftovers, and build a shopping list.
+- **Calendar.** Plan meals by day and look back at what you cooked.
+- **Saved recipes.** Favourite recipes are grouped by date and searchable.
+- **Trending dishes.** The Home screen shows dishes that are popular online, found through web search and refreshed daily.
+- **Profile.** Onboarding captures cooking level, spice tolerance, budget, equipment and goals. You can also record allergies (the 14 UK major allergens), dislikes and nutrition targets.
+- **Settings.** Metric or imperial units, servings, skill level, dark mode and daily meal reminders.
 
-   ```bash
-   npm install
-   ```
+## Tech stack
 
-2. Start the app
+| Layer | Technology |
+|---|---|
+| App | Expo SDK 54, React Native 0.81, React 19, TypeScript |
+| Navigation | Expo Router (file-based routing) |
+| Storage | AsyncStorage on the device |
+| Backend | Supabase (auth, database, Deno edge functions) |
+| AI | OpenAI, called only from edge functions |
+| Search | Tavily web search for trending dishes |
+| Notifications | expo-notifications (local, scheduled on the device) |
 
-   ```bash
-   npx expo start
-   ```
+## How it works
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+Phone app ──photo / ingredients──▶ Supabase edge functions ──▶ OpenAI
+    ▲                                         │
+    └──────────── JSON recipe ◀───────────────┘
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The OpenAI key never ships in the app. It is stored as a Supabase secret, and the app calls four edge functions:
 
-## Learn more
+| Function | Purpose |
+|---|---|
+| `generate-meal` | Detects ingredients in a photo |
+| `generate-final-meal` | Writes a full recipe from ingredients, vibe and diet |
+| `personalise-steps` | Rewrites recipe steps for the user's profile |
+| `get-viral-dishes` | Finds trending dishes and caches them in the `viral_dishes` table |
 
-To learn more about developing your project with Expo, look at the following resources:
+If the Supabase environment variables are missing, the app still runs, but the AI features are switched off.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Project structure
 
-## Join the community
+```
+app/
+  _layout.tsx         Root layout: brand intro, settings, Me panel context
+  (tabs)/             Home, AI Sous Chef, Pantry, Calendar, Saved (plus the hidden Me tab)
+  (features)/         Onboarding, Allergies, Dislikes, Nutrition, Settings, Shopping List
+  camera.tsx          Full-screen camera for ingredient scanning
+components/           Shared UI: tab bar, Me panel, brand intro, feature page template
+constants/            Data types, user profile model, Supabase config, brand tokens
+supabase/functions/   Edge functions (Deno)
+utils/                Unit conversion
+```
 
-Join our community of developers creating universal apps.
+## Getting started
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Prerequisites
+
+- Node.js 20 or later
+- The Expo Go app on your phone, or an Android emulator or iOS simulator
+- A Supabase project with an OpenAI API key (and a Tavily API key for trending dishes)
+
+### 1. Install
+
+```bash
+git clone https://github.com/uty101/ai-sous-chef.git
+cd ai-sous-chef
+npm install
+```
+
+### 2. Configure the app
+
+Copy `.env.example` to `.env` and fill in your Supabase details:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+### 3. Configure the backend
+
+Set the secrets the edge functions need, then deploy them:
+
+```bash
+npx supabase secrets set OPENAI_API_KEY=... TAVILY_API_KEY=...
+npx supabase functions deploy generate-meal
+npx supabase functions deploy generate-final-meal
+npx supabase functions deploy personalise-steps
+npx supabase functions deploy get-viral-dishes
+```
+
+Optional secrets choose the models: `OPENAI_MODEL`, `OPENAI_PREVIEW_MODEL` and `OPENAI_FINAL_MODEL`.
+
+On Windows, `app-set-openai-key.cmd` prompts for the OpenAI key and stores it as a secret without writing it to disk.
+
+### 4. Run
+
+```bash
+npm start              # Expo dev server; scan the QR code with Expo Go
+npm run android        # Android emulator
+npm run ios            # iOS simulator
+npm run lint           # ESLint
+```
+
+Windows helper scripts are also included:
+
+| Script | What it does |
+|---|---|
+| `app-phone.cmd` | Starts Expo on your Wi-Fi address and a free port, for testing on a phone |
+| `app-phone-tunnel.cmd` | Starts Expo through an ngrok tunnel when your network blocks LAN connections |
+| `app-preview.cmd` | Starts a local preview |
+| `app-stop.cmd` | Stops any running Expo servers |
+
+## Writing style
+
+All app copy and AI prompts follow the same rules:
+
+- UK English spelling (colour, courgette, aubergine, coriander, chilli)
+- Specific cuisines (Japanese, Lebanese, West African) rather than broad labels
+- Recipe titles of 2 to 4 words
+
+## Commit history
+
+Commits follow the [Conventional Commits](https://www.conventionalcommits.org) format, `type(scope): summary`, with a body explaining what changed and why. Common types are `feat` (new behaviour), `style` (visual changes), `fix`, `chore`, `build` and `docs`.
