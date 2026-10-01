@@ -17,7 +17,7 @@ import {
   View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BRAND_ORANGE = '#FF5C35';
 const CREAM = '#FFF8F0';
@@ -28,7 +28,6 @@ const GOLD = '#FFBA35';
 const GREEN = '#34A853';
 const BLUE = '#3B82F6';
 
-const TOP_INSET = initialWindowMetrics?.insets.top ?? 0;
 
 const CELL_WIDTH = 44;
 const CELL_GAP = 8;
@@ -501,6 +500,7 @@ function RecipeSheet({ recipe, onClose, isFav, onToggleFav }: { recipe: RecipeDe
 }
 
 export default function CalendarScreen() {
+  const { top: TOP_INSET } = useSafeAreaInsets();
   const dates = getDateRange();
   const scrollRef = useRef<ScrollView>(null);
 

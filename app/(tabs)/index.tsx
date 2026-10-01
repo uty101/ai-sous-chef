@@ -19,7 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PRIMARY = '#FF5C35';
 const BG = '#FFF8F0';
@@ -28,7 +28,6 @@ const DARK = '#1C1F2E';
 const GOLD = '#FFBA35';
 const MUTED = '#8E93A8';
 
-const TOP_INSET = initialWindowMetrics?.insets.top ?? 0;
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -1009,6 +1008,7 @@ function TrendCardItem({ t, onPress }: { t: MealDetail; onPress: () => void }) {
 }
 
 export default function HomeScreen() {
+  const { top: TOP_INSET } = useSafeAreaInsets();
   const [user, setUser] = useState<User | null>(null);
   const [recipes, setRecipes] = useState<MealDetail[]>([]);
   const [isLoading, setIsLoading] = useState(!!supabase);

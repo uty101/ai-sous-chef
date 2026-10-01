@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type QuickMeal = {
   title: string;
@@ -161,7 +161,6 @@ const STAPLES_KEY = 'pantry_staples';
 const SHOPPING_MODAL_KEY = 'shopping_list_modal_v2';
 const TEAL = '#2A9D8F';
 
-const TOP_INSET = initialWindowMetrics?.insets.top ?? 0;
 
 type ShoppingItem = { name: string; selected: boolean };
 
@@ -698,6 +697,7 @@ function ShoppingListModal({
 }
 
 export default function PantryTabScreen() {
+  const { top: TOP_INSET } = useSafeAreaInsets();
   const [basketItems, setBasketItems] = useState<string[]>([]);
   const [stapleItems, setStapleItems] = useState<string[]>([]);
   const [newItem, setNewItem] = useState('');

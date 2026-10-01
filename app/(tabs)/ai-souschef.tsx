@@ -31,7 +31,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const VIBES = ['Quick', 'Easy', 'Everyday', 'Gourmet', 'Michelin'] as const;
 const DIETS = ['No Preference', 'Balanced', 'High Protein', 'Low Carb', 'Comfort Food'] as const;
@@ -59,7 +59,6 @@ const INK = '#1C1F2E';
 const MUTED = '#8E93A8';
 const AUTO_ADD_POSSIBLE_CONFIDENCE = 0.45;
 
-const TOP_INSET = initialWindowMetrics?.insets.top ?? 0;
 const MAX_DIRECT_IMAGE_BYTES = 12 * 1024 * 1024;
 const FINAL_SCAN_MAX_EDGE = 1800;
 
@@ -550,6 +549,7 @@ function RecipeCard({ recipe, vibe, diet, isFav, onToggleFav }: {
 }
 
 export default function CookScreen() {
+  const { top: TOP_INSET } = useSafeAreaInsets();
   const { capturedImageUri, capturedAt } = useLocalSearchParams<{
     capturedImageUri?: string;
     capturedAt?: string;

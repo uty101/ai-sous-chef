@@ -17,7 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PRIMARY = '#FF5C35';
 const BG = '#FFF8F0';
@@ -26,7 +26,6 @@ const DARK = '#1C1F2E';
 const GOLD = '#FFBA35';
 const MUTED = '#8E93A8';
 
-const TOP_INSET = initialWindowMetrics?.insets.top ?? 0;
 
 const FAVORITES_KEY = 'saved_favorites';
 const SAVED_RECIPES_DATA_KEY = 'saved_recipes_data';
@@ -514,6 +513,7 @@ function RecipeCard({ recipe, isFav, onPress }: {
 }
 
 export default function SavedScreen() {
+  const { top: TOP_INSET } = useSafeAreaInsets();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isFetchingRecipes, setIsFetchingRecipes] = useState(false);
